@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:mysql://localhost:3306/nulink_living_ratio?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      idle-timeout: 600000
+      maximum-pool-size: 100
+      auto-commit: true
+      pool-name: XCarHikariCP
+      max-lifetime: 28770000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+      transaction:
+        rollback-on-commit-failure: true
+
+contracts:
+  start: 30613221
+  step: 500
+  enabled: true
+  contractList:
+    -
+      name: 'StakingManager'
+      address: '0x48A126A769bCb3d6aBa4B0C4E127a45075a37511'
+      enabled: true
+    -
+      name: 'NuLinkStakingPool'
+      address: '0xA3C0323E421cC64e64d5eF50e2C5587A6461Be53'
+      enabled: true
+    -
+      name: 'NuLinkStakingSetting'
+      address: '0x13cd891De2c924e2DFa08533Af2FF83bEd5B0077'
+      enabled: true
+
+web3j:
+  client-address: https://interrpc.abeychain.com
+  admin-client: true # to manage accounts, enable the admin client
+  httpTimeoutSeconds: 35
+
+NULink:
+  porter-service-url: http://8.222.146.98:9165
+  password: xxxxxx

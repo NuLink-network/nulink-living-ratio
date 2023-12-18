@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:mysql://127.0.0.1:3306/nulink_living_ratio?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      idle-timeout: 600000
+      maximum-pool-size: 100
+      auto-commit: true
+      pool-name: XCarHikariCP
+      max-lifetime: 28770000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+      transaction:
+        rollback-on-commit-failure: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+
+contracts:
+  start: 30613221
+  step: 500
+  enabled: true
+  contractList:
+    -
+      name: 'StakingManager'
+      address: '0xE70b5D599EaDC8E79aF7856b818C523458B29CC5'
+      enabled: true
+    -
+      name: 'NuLinkStakingPool'
+      address: '0xbE6c319cecD667787d4dDbD38a18053B49115B70'
+      enabled: true
+    -
+      name: 'NuLinkStakingSetting'
+      address: '0x7c7dd0EB0359f5cC64a048424Dc06D906034bCD6'
+      enabled: true
+
+web3j:
+  client-address: https://quick-white-lake.bsc-testnet.quiknode.pro/8e76954f100615552a781ae340f7039470fbda98
+  admin-client: true # to manage accounts, enable the admin client
+  httpTimeoutSeconds: 35
+
+knife4j:
+  enable: true
+  setting:
+    language: en-US
+
+NULink:
+  porter-service-url: http://8.222.146.98:9165
+  password: xxxxxx

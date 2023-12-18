@@ -1,0 +1,15 @@
+spring:
+  profiles:
+    active: test
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  security:
+    user:
+      name: nft@nulink.org
+      password: nft888@nulink.org
+  application:
+    name: nulink-living-ratio
+server:
+  port: 8091
+

@@ -341,7 +341,7 @@ public class StakeRewardService {
         }
         StakeReward stakeReward = new StakeReward();
         stakeReward.setStakingProvider(stake.getUser());
-        Bond bond = bondRepository.findTop1ByStakingProviderAndOperatorIsNotNullOrderByCreateTimeDesc(stakingProvider);
+        Bond bond = bondRepository.findLastOneBondByStakingProvider(stakingProvider);
         if (null != bond){
             stakeReward.setOperator(bond.getOperator());
             List<String> nodeAddress = findNodeAddress(Collections.singletonList(stake.getUser()));

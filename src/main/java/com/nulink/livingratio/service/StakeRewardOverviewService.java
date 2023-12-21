@@ -62,7 +62,9 @@ public class StakeRewardOverviewService {
         }
         List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(epoch));
         List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
-        stakeRewardOverview.setAccumulatedReward(sum(reward));
+        String sum = sum(reward);
+        sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(epoch))).toString();
+        stakeRewardOverview.setAccumulatedReward(sum);
         stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(epoch));
         stakeRewardOverview.setEpoch(epoch);
         return stakeRewardOverview;

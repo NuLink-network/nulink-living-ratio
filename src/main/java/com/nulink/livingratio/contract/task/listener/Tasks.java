@@ -26,10 +26,7 @@ public class Tasks {
     BlockEventListener blockEventListener;
 
     @Autowired
-    BlockEventListener blockEventDelayListener3;
-
-    @Autowired
-    BlockEventListener blockEventDelayListener15;
+    BlockEventListener blockEventDelayListener30;
 
     @Async
     @Scheduled(cron = "0/6 * * * * ?")
@@ -58,47 +55,21 @@ public class Tasks {
     }
 
     @Async
-    //@Scheduled(cron = "0/6 * * * * ?")
-    public void scanBlockEventDelay3() {
-
-        synchronized (blockListenerDelay3TaskKey) {
-            if (Tasks.lockBlockListenerDelay3TaskFlag) {
-                logger.warn("The Delay3 blockchain event scanning task is currently in progress.");
-                return;
-            }
-            Tasks.lockBlockListenerDelay3TaskFlag = true;
-        }
-
-        logger.info("Initiate the execution of the Delay3 blockchain event scanning task.");
-        try {
-
-            blockEventDelayListener3.start(3, null, null);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        Tasks.lockBlockListenerDelay3TaskFlag = false;
-
-        logger.info("The Delay3 blockchain event scanning task has concluded.");
-    }
-
-    @Async
-    //@Scheduled(cron = "0/6 * * * * ?")
-    public void scanBlockEventDelay15() {
+    @Scheduled(cron = "0/6 * * * * ?")
+    public void scanBlockEventDelay30() {
 
         synchronized (blockListenerDelayTaskKey) {
             if (Tasks.lockBlockListenerDelayTaskFlag) {
-                logger.warn("The Delay15 blockchain event scanning task is currently in progress.");
+                logger.warn("The Delay30 blockchain event scanning task is currently in progress.");
                 return;
             }
             Tasks.lockBlockListenerDelayTaskFlag = true;
         }
 
-        logger.info("Initiate the execution of the Delay15 blockchain event scanning task.");
+        logger.info("Initiate the execution of the Delay30 blockchain event scanning task.");
         try {
 
-            blockEventDelayListener15.start(15, null, null);
+            blockEventDelayListener30.start(30, null, null);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,7 +77,7 @@ public class Tasks {
 
         Tasks.lockBlockListenerDelayTaskFlag = false;
 
-        logger.info("The Delay15 blockchain event scanning task has concluded.");
+        logger.info("The Delay30 blockchain event scanning task has concluded.");
     }
 
 }

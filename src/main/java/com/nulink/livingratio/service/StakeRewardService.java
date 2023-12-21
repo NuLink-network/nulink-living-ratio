@@ -34,6 +34,9 @@ import java.util.stream.Collectors;
 @Service
 public class StakeRewardService {
 
+    private static final Object countPreviousEpochStakeRewardTaskKey = new Object();
+    private static boolean lockCountPreviousEpochStakeRewardTaskFlag = false;
+
     private static String STAKE_EVENT = "stake";
 
     private static String UN_STAKE_EVENT = "unstake";
@@ -73,6 +76,7 @@ public class StakeRewardService {
     @Transactional
     public void generateCurrentEpochValidStakeReward(){
         String currentEpoch = web3jUtils.getCurrentEpoch();
+        String currentEpochStartTime = web3jUtils.getEpochStartTime(currentEpoch);
         if (Integer.valueOf(currentEpoch) < 1){
             return;
         }
@@ -106,7 +110,7 @@ public class StakeRewardService {
                 }
             }
             stakeReward.setStakingProvider(stakeUser);
-            stakeReward.setStakingAmount(stake.getAmount());
+            stakeReward.setStakingAmount(getStakingAmount(stakeUser, currentEpochStartTime));
             stakeReward.setValidStakingAmount("0");
             stakeReward.setLivingRatio("0");
             stakeRewards.add(stakeReward);
@@ -173,6 +177,15 @@ public class StakeRewardService {
     @Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void countPreviousEpochStakeReward(){
+
+        synchronized (countPreviousEpochStakeRewardTaskKey) {
+            if (StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag) {
+                log.warn("The set living ratio task is already in progress");
+                return;
+            }
+            StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = true;
+        }
+
         String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
         List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
         if (stakeRewards.isEmpty()){
@@ -186,26 +199,18 @@ public class StakeRewardService {
             setLivingRatio.setEpoch(previousEpoch);
             setLivingRatioRepository.save(setLivingRatio);
         }
+        StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
     }
 
     public void countStakeReward(List<StakeReward> stakeRewards, String epoch){
         if (!stakeRewards.isEmpty()){
-            String epochEndTime = web3jUtils.getEpochEndTime(epoch);
             for (StakeReward stakeReward : stakeRewards) {
-
-                String stakingAmount = getStakingAmount(stakeReward.getStakingProvider(), epochEndTime);
-
-                stakeReward.setStakingAmount(stakingAmount);
-
                 if (StringUtils.isNotEmpty(stakeReward.getLivingRatio())){
-                    stakeReward.setValidStakingAmount(new BigDecimal(stakingAmount).multiply(new BigDecimal(stakeReward.getLivingRatio())).setScale(0, RoundingMode.HALF_UP).toString());
+                    stakeReward.setValidStakingAmount(new BigDecimal(stakeReward.getStakingAmount()).multiply(new BigDecimal(stakeReward.getLivingRatio())).setScale(0, RoundingMode.HALF_UP).toString());
                 }
             }
-
             String totalValidStakingAmount = sum(stakeRewards.stream().map(StakeReward::getValidStakingAmount).collect(Collectors.toList()));
             String currentEpochReward = web3jUtils.getEpochReward(epoch);
-
-
             for (StakeReward stakeReward : stakeRewards) {
                 if (new BigDecimal(totalValidStakingAmount).compareTo(BigDecimal.ZERO) > 0){
                     String validStakingQuota = new BigDecimal(stakeReward.getValidStakingAmount()).divide(new BigDecimal(totalValidStakingAmount),4, RoundingMode.HALF_UP).toString();
@@ -227,12 +232,12 @@ public class StakeRewardService {
         return sum.toString();
     }
 
-    private String getStakingAmount(String stakingAddress, String epochEndTime){
-        Stake unStake = stakeRepository.findFirstByUserAndEventAndCreateTimeBeforeOrderByCreateTimeDesc(stakingAddress, UN_STAKE_EVENT, new Date(Long.parseLong(epochEndTime) * 1000));
+    private String getStakingAmount(String stakingAddress, String epochTime){
+        Stake unStake = stakeRepository.findFirstByUserAndEventAndCreateTimeBeforeOrderByCreateTimeDesc(stakingAddress, UN_STAKE_EVENT, new Date(Long.parseLong(epochTime) * 1000));
         List<Stake> stakes;
         if (unStake != null) {
             Date unStakeCreateTime = unStake.getCreateTime();
-            stakes = stakeRepository.findAllByUserAndEventAndCreateTimeBetween(stakingAddress, STAKE_EVENT, unStakeCreateTime, new Date(Long.parseLong(epochEndTime) * 1000));
+            stakes = stakeRepository.findAllByUserAndEventAndCreateTimeBetween(stakingAddress, STAKE_EVENT, unStakeCreateTime, new Date(Long.parseLong(epochTime) * 1000));
         } else {
             stakes = stakeRepository.findAllByUser(stakingAddress);
         }
@@ -271,16 +276,17 @@ public class StakeRewardService {
                 PorterRequestVO porterRequestVO = objectMapper.readValue(response.body().string(), PorterRequestVO.class);
                 return porterRequestVO.getResult().getList();
             } else {
+                response.close();
                 log.error("Failed to fetch work address");
                 return null;
             }
         }  catch (IOException e) {
-            log.error("Failed to retrieve worker address");
+            log.error("Failed to retrieve worker address", e);
             throw new RuntimeException(e);
         }
     }
 
-    private boolean pingNode(String nodeAddress){
+    private boolean pingNode(String nodeAddress) {
         OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
         Request request = new Request.Builder()
                 .url(nodeAddress + PING)
@@ -295,9 +301,11 @@ public class StakeRewardService {
             throw new RuntimeException(e.getMessage());
         }
         if (response.isSuccessful()) {
+            response.close();
             return true;
         } else {
             log.error("Request failed. Response code: " + response.code());
+            response.close();
             return false;
         }
     }
@@ -326,7 +334,7 @@ public class StakeRewardService {
     }
 
     @Transactional
-    public StakeReward findByEpochAndStakingProvider(String stakingProvider){
+    public StakeReward nodeInfo(String stakingProvider){
         Stake stake = stakeRepository.findFirstByUserAndEventOrderByCreateTimeDesc(stakingProvider, STAKE_EVENT);
         if (null == stake){
             return null;
@@ -349,6 +357,23 @@ public class StakeRewardService {
             stakeReward.setOnline(false);
         }
         return stakeReward;
+    }
+
+    @Transactional
+    public StakeReward findByEpochAndStakingProvider(String stakingProvider, String epoch){
+        String currentEpoch = web3jUtils.getCurrentEpoch();
+        if (currentEpoch.equals(epoch)){
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
+            countStakeReward(stakeRewards, epoch);
+            for (StakeReward stakeReward : stakeRewards) {
+                if (stakeReward.getStakingProvider().equals(stakingProvider)){
+                    return stakeReward;
+                }
+            }
+        } else {
+            return stakeRewardRepository.findByEpochAndStakingProvider(epoch, stakingProvider);
+        }
+        return null;
     }
 
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum){

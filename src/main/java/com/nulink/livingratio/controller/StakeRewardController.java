@@ -27,8 +27,15 @@ public class StakeRewardController {
 
     @ApiOperation("node info")
     @GetMapping("/nodeInfo")
-    public BaseResponse<StakeReward> findStakeReward(@RequestParam(value = "stakeProvider") String stakeProvider){
-        return BaseResponse.success(stakeRewardService.findByEpochAndStakingProvider(stakeProvider));
+    public BaseResponse<StakeReward> nodeInfo(@RequestParam(value = "stakeProvider") String stakeProvider){
+        return BaseResponse.success(stakeRewardService.nodeInfo(stakeProvider));
+    }
+
+    @ApiOperation("Stake Reward Info")
+    @GetMapping("/findOne")
+    public BaseResponse<StakeReward> findStakeReward(@RequestParam(value = "stakeProvider") String stakeProvider,
+                                                     @RequestParam(value = "epoch") String epoch){
+        return BaseResponse.success(stakeRewardService.findByEpochAndStakingProvider(stakeProvider, epoch));
     }
 
     @ApiOperation(value = "Stake Reward Page")

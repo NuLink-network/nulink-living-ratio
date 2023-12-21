@@ -18,7 +18,7 @@ spring:
         rollback-on-commit-failure: true
 
 contracts:
-  start: 30613221
+  start: 36115237
   step: 500
   enabled: true
   contractList:

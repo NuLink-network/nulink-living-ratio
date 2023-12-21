@@ -15,11 +15,15 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
 @Service
 public class SetLivingRatioService {
+
+    private static final Object setLivingRatioTaskKey = new Object();
+    private static boolean lockSetLivingRatioTaskFlag = false;
 
     private final Web3jUtils web3jUtils;
     private final SetLivingRatioRepository setLivingRatioRepository;
@@ -39,9 +43,17 @@ public class SetLivingRatioService {
     }
 
     @Async
-    @Scheduled(cron = "0 0/2 * * * ? ")
+    @Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void setLivingRatio(){
+        synchronized (setLivingRatioTaskKey) {
+            if (SetLivingRatioService.lockSetLivingRatioTaskFlag) {
+                log.warn("The set living ratio task is already in progress");
+                return;
+            }
+            SetLivingRatioService.lockSetLivingRatioTaskFlag = true;
+        }
+
         SetLivingRatio setLivingRatio = setLivingRatioRepository.findFirstBySetLivingRatioOrderByCreateTime(false);
         if (setLivingRatio != null) {
             String epoch = setLivingRatio.getEpoch();
@@ -55,6 +67,9 @@ public class SetLivingRatioService {
                     do {
                         txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios);
                         i++;
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(1000);
+                        } catch (InterruptedException e) {}
                     }while (i < 20 && (null == txHash || txHash.isEmpty()));
                     TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
                     // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
@@ -63,11 +78,13 @@ public class SetLivingRatioService {
                         throw new RuntimeException(txReceipt.getRevertReason());
                     }
                     setLivingRatio.setSetLivingRatio(true);
+                    setLivingRatio.setTxHash(txHash);
                     setLivingRatioRepository.save(setLivingRatio);
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
+        SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
     }
 }

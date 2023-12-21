@@ -252,10 +252,20 @@ public class Web3jUtils {
                 EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();
                 BigInteger nonce = ethGetTransactionCount.getTransactionCount();
 
-                BigInteger ethGasPrice = getGasPrice();//multiply(new BigInteger("13")).divide(new BigInteger("10"));
-                BigInteger gasPrice = ethGasPrice;
+                /*Transaction transaction = Transaction.createFunctionCallTransaction(
+                        fromAddress,
+                        nonce,
+                        BigInteger.ZERO,
+                        BigInteger.ZERO,
+                        contractAddress,
+                        encodedFunction
+                );
 
-                RawTransaction rawTransaction = RawTransaction.createTransaction(nonce, gasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
+                BigInteger transactionGasLimit = getTransactionGasLimit(transaction);*/
+
+                BigInteger ethGasPrice = getGasPrice();
+
+                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
 
                 byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, 97, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);
@@ -267,6 +277,7 @@ public class Web3jUtils {
                     throw new EOFException(ethSendTransaction.getError().getMessage());
                 }
                 return ethSendTransaction.getTransactionHash();
+
             } catch (Exception e) {
                 log.error("sendTransaction Exception:" + e);
                 throw e;

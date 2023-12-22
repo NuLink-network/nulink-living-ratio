@@ -13,6 +13,8 @@ import java.util.List;
 @Repository
 public interface BondRepository extends PagingAndSortingRepository<Bond, Long>, JpaSpecificationExecutor {
 
+    Bond findByTxHash(String txHash);
+
     List<Bond> findAllByEpoch(String epoch);
 
     @Query(value = "SELECT b.* \n" +

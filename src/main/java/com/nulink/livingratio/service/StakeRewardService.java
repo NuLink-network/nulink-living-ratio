@@ -14,6 +14,7 @@ import lombok.extern.log4j.Log4j2;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -124,7 +125,7 @@ public class StakeRewardService {
     @Transactional
     public void livingRatio(){
         String epoch = web3jUtils.getCurrentEpoch();
-        if (Integer.valueOf(epoch) < 1){
+        if (Integer.parseInt(epoch) < 1){
             return;
         }
         List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
@@ -349,7 +350,7 @@ public class StakeRewardService {
             if (StringUtils.isNotEmpty(nodeUrl)){
                 String ipAddress = getIpAddress(nodeUrl);
                 stakeReward.setIpAddress(ipAddress);
-                stakeReward.setOnline(pingNode(nodeUrl));
+                stakeReward.setOnline(checkNode(stakingProvider));
             } else {
                 stakeReward.setOnline(false);
             }
@@ -359,7 +360,6 @@ public class StakeRewardService {
         return stakeReward;
     }
 
-    @Transactional
     public StakeReward findByEpochAndStakingProvider(String stakingProvider, String epoch){
         String currentEpoch = web3jUtils.getCurrentEpoch();
         if (currentEpoch.equals(epoch)){
@@ -394,6 +394,7 @@ public class StakeRewardService {
         return stakeRewardPage;
     }
 
+    @Cacheable(cacheNames = "stakeRewardList", key = "#epoch")
     public List<StakeReward> list(String epoch){
         return stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
     }

@@ -20,6 +20,10 @@ public class BondService {
 
     @Transactional
     public void create(Bond bond){
+        Bond b = bondRepository.findByTxHash(bond.getTxHash());
+        if (null != b){
+            return;
+        }
         bond.setEpoch(web3jUtils.getCurrentEpoch());
         bondRepository.save(bond);
     }

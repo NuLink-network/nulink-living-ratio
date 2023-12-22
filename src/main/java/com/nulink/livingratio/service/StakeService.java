@@ -23,6 +23,10 @@ public class StakeService {
 
     @Transactional
     public void create(Stake stake){
+        Stake s = stakeRepository.findByTxHash(stake.getTxHash());
+        if (null != s){
+            return;
+        }
         stakeRepository.save(stake);
     }
 

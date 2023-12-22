@@ -7,6 +7,7 @@ import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -70,6 +71,7 @@ public class StakeRewardOverviewService {
         return stakeRewardOverview;
     }
 
+    @Cacheable(cacheNames = "StakeRewardOverview", key = "#epoch")
     public StakeRewardOverview findEpoch(String epoch){
         return stakeRewardOverviewRepository.findByEpoch(epoch);
     }

@@ -13,6 +13,8 @@ import java.util.List;
 @Repository
 public interface StakeRepository extends PagingAndSortingRepository<Stake, Long>, JpaSpecificationExecutor {
 
+    Stake findByTxHash(String txHash);
+
     @Query(value = "SELECT\n" +
                     "	s.* \n" +
                     "FROM\n" +

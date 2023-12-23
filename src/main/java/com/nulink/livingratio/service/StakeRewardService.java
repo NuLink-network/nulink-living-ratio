@@ -269,7 +269,7 @@ public class StakeRewardService {
             ObjectMapper objectMapper = new ObjectMapper();
             String requestJson = objectMapper.writeValueAsString(requestMap);
             RequestBody requestBody =  RequestBody.create(mediaType, requestJson);
-            OkHttpClient client = new OkHttpClient();
+            OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
             Request request = new Request.Builder().url(porterServiceUrl + INCLUDE_URSULA).post(requestBody).build();
 
             Response response = client.newCall(request).execute();
@@ -312,7 +312,7 @@ public class StakeRewardService {
     }
 
     public boolean checkNode(String stakeAddress){
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
         HttpUrl.Builder urlBuilder = HttpUrl.parse(porterServiceUrl + CHECK_URSULA_API).newBuilder();
         urlBuilder.addQueryParameter("staker_address", stakeAddress);
         String url = urlBuilder.build().toString();

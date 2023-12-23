@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.nulink</groupId>
 	<artifactId>nulink-living-ratio</artifactId>
-	<version>0.0.1</version>
+	<version>0.5.0</version>
 	<name>nulink-living-ratio</name>
 	<description>nulink-living-ratio</description>
 

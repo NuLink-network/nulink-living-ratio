@@ -6,6 +6,12 @@ public enum ContractsEventEnum {
 
     UN_STAKE_ALL,
 
-    OPERATOR_BONDED
+    OPERATOR_BONDED,
+
+    CLAIM,
+
+    CLAIM_REWARD,
+
+    TEST_NLK
 
 }

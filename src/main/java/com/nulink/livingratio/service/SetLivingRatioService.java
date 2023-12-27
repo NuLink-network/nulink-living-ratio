@@ -42,6 +42,10 @@ public class SetLivingRatioService {
         setLivingRatioRepository.save(setLivingRatio);
     }
 
+    public List<SetLivingRatio> findUnset(){
+        return setLivingRatioRepository.findAllBySetLivingRatioOrderByCreateTimeDesc(false);
+    }
+
     @Async
     @Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
@@ -75,13 +79,12 @@ public class SetLivingRatioService {
                     // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
                     if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
                         log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
-                        throw new RuntimeException(txReceipt.getRevertReason());
                     }
                     setLivingRatio.setSetLivingRatio(true);
                     setLivingRatio.setTxHash(txHash);
                     setLivingRatioRepository.save(setLivingRatio);
                 } catch (IOException | InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
+                    log.error("==========>set living ratio failed reason: {}", e.getMessage());
                 }
             }
         }

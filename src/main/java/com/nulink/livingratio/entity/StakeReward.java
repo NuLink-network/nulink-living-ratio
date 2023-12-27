@@ -38,22 +38,18 @@ public class StakeReward extends BaseEntity{
     @Column(name = "valid_staking_quota")
     private String validStakingQuota;
 
-    @JsonIgnore
     @Column(name = "connectable")
     @ColumnDefault("0")
     private int connectable = 0;
 
-    @JsonIgnore
     @Column(name = "connect_fail")
     @ColumnDefault("0")
     private int connectFail = 0;
 
-    @JsonIgnore
     @Column(name = "unstake")
     @ColumnDefault("0")
     private int unStake = 0;
 
-    @JsonIgnore
     @Column(name = "ping_count")
     @ColumnDefault("0")
     private int pingCount = 0;

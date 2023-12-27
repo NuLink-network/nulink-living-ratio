@@ -21,6 +21,12 @@ public class ContractsEventBuilder implements EventBuilder<ContractsEventEnum> {
                 return getUnStakeAllEvent();
             case OPERATOR_BONDED:
                 return getOperatorBondedEvent();
+            case CLAIM:
+                return getCliamEvent();
+            case CLAIM_REWARD:
+                return getCliamRewardEvent();
+            case TEST_NLK:
+                return getTestNLKEvent();
             default:
                 return null;
         }
@@ -65,5 +71,47 @@ public class ContractsEventBuilder implements EventBuilder<ContractsEventEnum> {
                         new TypeReference<Uint256>(true) {}
                 ));
     }
+
+    public static Event getCliamEvent() {
+        return new Event("Claim",
+                Arrays.asList(
+                        // user
+                        new TypeReference<Address>(true) {},
+                        // amount
+                        new TypeReference<Uint256>(true) {},
+                        // startTimestamp
+                        new TypeReference<Uint256>(true) {},
+                        // epoch
+                        new TypeReference<Uint16>(true) {}
+                ));
+    }
+
+    public static Event getCliamRewardEvent() {
+        return new Event("ClaimReward",
+                Arrays.asList(
+                        // user
+                        new TypeReference<Address>(true) {},
+                        // _rewardAmount
+                        new TypeReference<Uint256>(true) {},
+                        // time
+                        new TypeReference<Uint256>(true) {},
+                        // _lastEpoch
+                        new TypeReference<Uint16>(true) {}
+                ));
+    }
+
+    public static Event getTestNLKEvent() {
+        return new Event("TestNLK",
+                Arrays.asList(
+                        // user
+                        new TypeReference<Address>(true) {},
+                        // _countryCode
+                        new TypeReference<Utf8String>(true) {},
+                        // _ip
+                        new TypeReference<Utf8String>(true) {}
+                ));
+    }
+
+
 
 }

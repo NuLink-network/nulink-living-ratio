@@ -1,8 +1,10 @@
+server:
+  port: 8091
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://rm-gs508vjjdk9khv8ws.mysql.singapore.rds.aliyuncs.com/horus_testnet?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://rm-gs508vjjdk9khv8wsdo.mysql.singapore.rds.aliyuncs.com/horus_testnet?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: horus_testnet
     password: C#If4d+if32l2-F2lf52
     hikari:
@@ -50,6 +52,10 @@ contracts:
       name: 'NuLinkStakingSetting'
       address: '0xCA03E23Fbd5CfEEb9562F5a794d28046D9Eb2Eba'
       enabled: true
+    -
+      name: 'NLKFaucet'
+      address: '0x4bB24Ab269B02FBe34BD8eae5B4b406F53E8FF44'
+      enabled: true
 
 web3j:
   #client-address: https://data-seed-prebsc-2-s2.bnbchain.org:8545
@@ -65,3 +71,4 @@ knife4j:
 NULink:
   porter-service-url: https://porter-api.testnet.nulink.org
   password: xxxxxx
+  chainId: 97

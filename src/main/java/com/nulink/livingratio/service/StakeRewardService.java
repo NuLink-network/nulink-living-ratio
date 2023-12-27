@@ -15,10 +15,7 @@ import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +26,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -42,7 +41,7 @@ public class StakeRewardService {
 
     private static String UN_STAKE_EVENT = "unstake";
 
-    private final String PING = "/ping";
+    private static String PING = "/ping";
 
     private final String INCLUDE_URSULA = "/include/ursulas";
     private final String CHECK_URSULA_API = "/check/ursula";
@@ -108,6 +107,11 @@ public class StakeRewardService {
                 String url = nodeAddresses.get(stakingAddress.indexOf(stakeUser));
                 if (StringUtils.isNotEmpty(url)){
                     stakeReward.setIpAddress(getIpAddress(url));
+                } else {
+                    StakeReward s = stakeRewardRepository.findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(stakeUser);
+                    if (null != s){
+                        stakeReward.setIpAddress(s.getIpAddress());
+                    }
                 }
             }
             stakeReward.setStakingProvider(stakeUser);
@@ -120,14 +124,15 @@ public class StakeRewardService {
     }
 
     @Async
-    //@Scheduled(cron = "0 30 * * * ? ")
-    @Scheduled(cron = "0 0/5 * * * ? ")
+    @Scheduled(cron = "0 30 * * * ? ")
+    //@Scheduled(cron = "0 0/5 * * * ? ")
     @Transactional
-    public void livingRatio(){
+    public void livingRatio() {
         String epoch = web3jUtils.getCurrentEpoch();
         if (Integer.parseInt(epoch) < 1){
             return;
         }
+        log.info("living ratio task start ...........................");
         List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
         List<Bond> latestBonds = bondRepository.findLatest();
         List<Stake> latestStakes = stakeRepository.findLatest();
@@ -139,7 +144,21 @@ public class StakeRewardService {
 
         List<String> stakingAddress = stakeRewards.stream().map(StakeReward::getStakingProvider).collect(Collectors.toList());
 
+        // check node status
+        CheckNodeExecutor checkNodeExecutor = new CheckNodeExecutor();
         List<String> nodeAddresses = findNodeAddress(stakingAddress);
+
+        List<CheckNodeExecutor.ServerStatus> serverStatuses = new ArrayList<>();
+        for (int i = 0; i < stakingAddress.size(); i++) {
+            String address = nodeAddresses.get(i);
+            if(StringUtils.isNotEmpty(address)){
+                serverStatuses.add(new CheckNodeExecutor.ServerStatus(address, stakingAddress.get(i)));
+            }
+        }
+        List<CheckNodeExecutor.ServerStatus> serverStatusesResult = checkNodeExecutor.executePingTasks(serverStatuses);
+        Map<String, Boolean> nodeCheckMap = new HashMap<>();
+        serverStatusesResult.forEach(serverStatus -> nodeCheckMap.put(serverStatus.getServer(), serverStatus.isOnline()));
+        checkNodeExecutor.shutdown(); // check node finish , executor shutdown
 
         for (StakeReward stakeReward : stakeRewards) {
             stakeReward.setPingCount(stakeReward.getPingCount() + 1);
@@ -156,11 +175,11 @@ public class StakeRewardService {
                 }
                 Bond bond = latestBoundMap.get(stakingProvider);
                 Stake stake = latestStakeMap.get(stakingProvider);
-                if (bond.getOperator().isEmpty() && stake.getEvent().equals("unstake")){
+                if (null == bond || (bond.getOperator().equals("0x0000000000000000000000000000000000000000") && stake.getEvent().equals("unstake"))){
                     stakeReward.setUnStake(stakeReward.getUnStake() + 1);
                 } else {
-                    boolean connectable = pingNode(nodeAddress);
-                    if (connectable){
+                    Boolean b = nodeCheckMap.get(nodeAddress);
+                    if (b != null && b){
                         stakeReward.setConnectable(stakeReward.getConnectable() + 1);
                     } else {
                         stakeReward.setConnectFail(stakeReward.getConnectFail() + 1);
@@ -172,6 +191,7 @@ public class StakeRewardService {
             stakeReward.setLivingRatio(new BigDecimal(stakeReward.getConnectable()).divide(new BigDecimal(stakeReward.getPingCount()), 4, RoundingMode.HALF_UP).toString());
         }
         stakeRewardRepository.saveAll(stakeRewards);
+        log.info("living ratio task finish ...........................");
     }
 
     @Async
@@ -287,7 +307,7 @@ public class StakeRewardService {
         }
     }
 
-    private boolean pingNode(String nodeAddress) {
+    public boolean pingNode(String nodeAddress) {
         OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
         Request request = new Request.Builder()
                 .url(nodeAddress + PING)
@@ -317,7 +337,7 @@ public class StakeRewardService {
         urlBuilder.addQueryParameter("staker_address", stakeAddress);
         String url = urlBuilder.build().toString();
 
-        Request request = new Request.Builder() .url(url) .build();
+        Request request = new Request.Builder().url(url).build();
 
         try {
             Response response = client.newCall(request).execute();
@@ -352,6 +372,10 @@ public class StakeRewardService {
                 stakeReward.setIpAddress(ipAddress);
                 stakeReward.setOnline(checkNode(stakingProvider));
             } else {
+                StakeReward s = stakeRewardRepository.findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(stakingProvider);
+                if (null != s){
+                    stakeReward.setIpAddress(s.getIpAddress());
+                }
                 stakeReward.setOnline(false);
             }
         } else {
@@ -389,9 +413,14 @@ public class StakeRewardService {
 
     public Page<StakeReward> findCurrentEpochPage(int pageSize, int pageNum){
         String epoch = web3jUtils.getCurrentEpoch();
-        Page<StakeReward> stakeRewardPage = findPage(epoch, pageSize, pageNum);
-        countStakeReward(stakeRewardPage.getContent(), epoch);
-        return stakeRewardPage;
+        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+        countStakeReward(stakeRewards, epoch);
+        int endIndex = pageNum * pageSize;
+        int size = stakeRewards.size();
+        endIndex =  endIndex > size?size:endIndex;
+        List<StakeReward> subList = stakeRewards.subList((pageNum - 1) * pageSize, endIndex);
+        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Order.asc("createTime")));
+        return new PageImpl<>(subList, pageable, size);
     }
 
     @Cacheable(cacheNames = "stakeRewardList", key = "#epoch")

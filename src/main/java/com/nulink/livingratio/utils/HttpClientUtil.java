@@ -5,12 +5,12 @@ import okhttp3.OkHttpClient;
 import javax.net.ssl.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.concurrent.TimeUnit;
 
 public class HttpClientUtil {
 
     public static OkHttpClient getUnsafeOkHttpClient() {
         try {
-            // 创建信任所有证书的TrustManager
             final TrustManager[] trustAllCerts = new TrustManager[]{
                     new X509TrustManager() {
                         @Override
@@ -30,15 +30,13 @@ public class HttpClientUtil {
                     }
             };
 
-            // 安装信任所有证书的TrustManager
             final SSLContext sslContext = SSLContext.getInstance("SSL");
             sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            // 从上述SSLContext创建一个SSL套接字工厂
             final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
-            return builder.build();
+            return builder.connectTimeout(15, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS).build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

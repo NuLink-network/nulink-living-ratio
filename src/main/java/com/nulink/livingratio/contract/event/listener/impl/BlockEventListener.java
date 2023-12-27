@@ -2,6 +2,7 @@ package com.nulink.livingratio.contract.event.listener.impl;
 
 import com.nulink.livingratio.config.ContractsConfig;
 import com.nulink.livingratio.contract.event.listener.consumer.BondEventHandler;
+import com.nulink.livingratio.contract.event.listener.consumer.FaucetEventHandler;
 import com.nulink.livingratio.contract.event.listener.consumer.StakeEventHandler;
 import com.nulink.livingratio.contract.event.listener.filter.events.ContractsEventEnum;
 import com.nulink.livingratio.contract.event.listener.filter.events.impl.ContractsEventBuilder;
@@ -135,6 +136,25 @@ public class BlockEventListener {
             String topicEventMint = EventEncoder.encode(unStakeAllEvent).toLowerCase();
             topicAndContractAddr2EventMap.put(topicEventMint + "_" + stakingPoolCI.getAddress(), unStakeAllEvent);
             topicAndContractAddr2CallBackMap.put(topicEventMint + "_" + stakingPoolCI.getAddress(), StakeEventHandler.class.getMethod("descUnStakeAll", Log.class/*,secondParameterTypeClass.class*/));
+
+            Event claimEvent = new ContractsEventBuilder().build(ContractsEventEnum.CLAIM);
+            String topicEventClaim = EventEncoder.encode(claimEvent).toLowerCase();
+            topicAndContractAddr2EventMap.put(topicEventClaim + "_" + stakingPoolCI.getAddress(), claimEvent);
+            topicAndContractAddr2CallBackMap.put(topicEventClaim + "_" + stakingPoolCI.getAddress(), StakeEventHandler.class.getMethod("descClaim", Log.class));
+
+            Event claimRewardEvent = new ContractsEventBuilder().build(ContractsEventEnum.CLAIM_REWARD);
+            String topicEventClaimReward = EventEncoder.encode(claimRewardEvent).toLowerCase();
+            topicAndContractAddr2EventMap.put(topicEventClaimReward + "_" + stakingPoolCI.getAddress(), claimRewardEvent);
+            topicAndContractAddr2CallBackMap.put(topicEventClaimReward + "_" + stakingPoolCI.getAddress(), StakeEventHandler.class.getMethod("descClaim", Log.class));
+        }
+
+        ContractsConfig.ContractInfo nlkFaucetCI = contractsConfig.getContractInfo("NLKFaucet");
+
+        if (isTaskEnable(enablesTaskNames, disableTaskNames, nlkFaucetCI.getName()) && nlkFaucetCI.getEnabled()) {
+            Event faucetNLKEvent = new ContractsEventBuilder().build(ContractsEventEnum.TEST_NLK);
+            String topicEventFaucetNLK = EventEncoder.encode(faucetNLKEvent).toLowerCase();
+            topicAndContractAddr2EventMap.put(topicEventFaucetNLK + "_" + nlkFaucetCI.getAddress(), faucetNLKEvent);
+            topicAndContractAddr2CallBackMap.put(topicEventFaucetNLK + "_" + nlkFaucetCI.getAddress(), FaucetEventHandler.class.getMethod("descFaucetNLKReward", Log.class));
         }
 
     }

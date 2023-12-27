@@ -1,3 +1,5 @@
+server:
+  port: 8091
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -51,6 +53,10 @@ contracts:
       name: 'NuLinkStakingSetting'
       address: '0x13cd891De2c924e2DFa08533Af2FF83bEd5B0077'
       enabled: true
+    -
+      name: 'NLKFaucet'
+      address: '0x4bB24Ab269B02FBe34BD8eae5B4b406F53E8FF44'
+      enabled: true
 
 web3j:
   client-address: https://interrpc.abeychain.com
@@ -60,3 +66,4 @@ web3j:
 NULink:
   porter-service-url: http://8.222.146.98:9165
   password: xxxxxx
+  chainId: 97

@@ -1,8 +1,10 @@
+server:
+  port: 8092
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://127.0.0.1:3306/nulink_living_ratio?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://127.0.0.1:3306/staking?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: 123456
     hikari:
@@ -24,6 +26,7 @@ spring:
   redis:
     port: 6379
     host: 127.0.0.1
+    password: Nulink@2023Redis
   jpa:
     hibernate:
       ddl-auto: update
@@ -33,21 +36,25 @@ spring:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
 
 contracts:
-  start: 36115237
+  start: 36261400
   step: 500
   enabled: true
   contractList:
     -
       name: 'StakingManager'
-      address: '0x485cF59ef756c38Cf07a894c67559c0677b3440D'
+      address: '0x08e64D68959147097DEC69F14f616185194E081F'
       enabled: true
     -
       name: 'NuLinkStakingPool'
-      address: '0x87a0Ac6Dd8Bdf4022dd734BbbC7ff01281754d98'
+      address: '0xabAabF524cA121eb9c1190e708c43ca784Fadb3a'
       enabled: true
     -
       name: 'NuLinkStakingSetting'
-      address: '0xCA03E23Fbd5CfEEb9562F5a794d28046D9Eb2Eba'
+      address: '0x8f7F7d0e6300Fce1dd24D0c50292e48f2bB4c2Ad'
+      enabled: true
+    -
+      name: 'NLKFaucet'
+      address: '0x60E7980DbA8d4cBaA0C4079801B770cf91311701'
       enabled: true
 
 web3j:
@@ -61,5 +68,6 @@ knife4j:
     language: en-US
 
 NULink:
-  porter-service-url: http://8.219.5.233:9155
+  porter-service-url: http://8.219.11.39:9165
   password: xxxxxx
+  chainId: 97

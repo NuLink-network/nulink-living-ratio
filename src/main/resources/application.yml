@@ -10,6 +10,4 @@ spring:
       password: nft888@nulink.org
   application:
     name: nulink-living-ratio
-server:
-  port: 8091
 

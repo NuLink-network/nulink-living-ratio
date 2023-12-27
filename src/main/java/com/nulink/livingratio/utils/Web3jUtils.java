@@ -53,6 +53,10 @@ import java.util.stream.Collectors;
 @Service
 public class Web3jUtils {
 
+    private static String DEV_PROFILE = "dev";
+    private static String TEST_PROFILE = "test";
+    private static String PROD_PROFILE = "prod";
+
     public static Logger logger = LoggerFactory.getLogger(Web3jUtils.class);
 
     /**
@@ -69,6 +73,9 @@ public class Web3jUtils {
 
     @Value("${NULink.password}")
     private String password;
+
+    @Value("${NULink.chainId}")
+    private int chainId;
 
     private static Credentials credentials;
 
@@ -96,9 +103,11 @@ public class Web3jUtils {
 
         log.info("The current runtime environment：" + activeProfile);
 
-        if (activeProfile.equals("dev") || activeProfile.equals("test")){
+        if (activeProfile.equals(TEST_PROFILE)){
             keystorePath = "keystore/keystore_test";
-        } else {
+        } else if (activeProfile.equals(DEV_PROFILE)) {
+            keystorePath = "keystore/keystore_dev";
+        } else if(activeProfile.equals(PROD_PROFILE)) {
             keystorePath = "keystore/keystore";
         }
 
@@ -267,7 +276,7 @@ public class Web3jUtils {
 
                 RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
 
-                byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, 97, credentials);
+                byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);
 
                 EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();

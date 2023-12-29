@@ -118,12 +118,12 @@ public class CheckNodeExecutor {
                     response = client.newCall(request).execute();
                     if (response.isSuccessful()) {
                         /*
-                        success response:
-                       {
-                            "version":"0.5.0"
-                            "data": "success"
-                        }
-                     */
+                            success response:
+                           {
+                                "version":"0.5.0"
+                                "data": "success"
+                            }
+                        */
                         ObjectMapper objectMapper = new ObjectMapper();
                         JsonNode jsonNode = null;
                         if (response.body() != null) {
@@ -138,6 +138,7 @@ public class CheckNodeExecutor {
                         }
                     } else {
                         log.error(serverStatus.getServer() +" Request failed. Response code: " + response.code());
+                        log.error(serverStatus.getServer() +":" + serverStatus.getStakingProvider() + "----" + serverStatus.getServer());
                         result = false;
                     }
                 } catch (Exception e) {

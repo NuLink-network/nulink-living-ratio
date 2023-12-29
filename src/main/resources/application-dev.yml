@@ -22,7 +22,7 @@ spring:
     type: redis
     redis:
       cache-null-values: true
-      time-to-live: 60000
+      time-to-live: 10000
   redis:
     port: 6379
     host: 127.0.0.1
@@ -46,7 +46,7 @@ contracts:
       enabled: true
     -
       name: 'NuLinkStakingPool'
-      address: '0xabAabF524cA121eb9c1190e708c43ca784Fadb3a'
+      address: '0xE0Ae95b1ce3554358BaFb6ec0abeD89fc4235209'
       enabled: true
     -
       name: 'NuLinkStakingSetting'

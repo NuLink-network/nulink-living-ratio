@@ -22,7 +22,7 @@ spring:
     type: redis
     redis:
       cache-null-values: true
-      time-to-live: 60000
+      time-to-live: 10000
   redis:
     port: 6379
     host: r-gs50uhavyclsmv5co6.redis.singapore.rds.aliyuncs.com
@@ -42,19 +42,19 @@ contracts:
   contractList:
     -
       name: 'StakingManager'
-      address: '0x485cF59ef756c38Cf07a894c67559c0677b3440D'
+      address: '0x5bbd927A193a21b54c872A5522F268Bc62933644'
       enabled: true
     -
       name: 'NuLinkStakingPool'
-      address: '0x87a0Ac6Dd8Bdf4022dd734BbbC7ff01281754d98'
+      address: '0xDDeD23f61040c917BF14d50383F55D49D5fffaF5'
       enabled: true
     -
       name: 'NuLinkStakingSetting'
-      address: '0xCA03E23Fbd5CfEEb9562F5a794d28046D9Eb2Eba'
+      address: '0x0C1D3f70C9e377D69f5F628EA3668caffa29068c'
       enabled: true
     -
       name: 'NLKFaucet'
-      address: '0x4bB24Ab269B02FBe34BD8eae5B4b406F53E8FF44'
+      address: '0xd2a09594c0944d662fa40cDE2FC1c084B88a7f0c'
       enabled: true
 
 web3j:

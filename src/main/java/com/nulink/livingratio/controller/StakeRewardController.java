@@ -41,13 +41,15 @@ public class StakeRewardController {
     @ApiOperation(value = "Stake Reward Page")
     @GetMapping("page")
     public BaseResponse<Page<StakeReward>> findStakeRewardPage(@RequestParam(value = "epoch") String epoch,
+                                                               @RequestParam(value = "orderBy", required = false) String orderBy,
+                                                               @RequestParam(value = "sorted", required = false) String sorted,
                                                                @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
                                                                @RequestParam(value = "pageNum", defaultValue = "1") int pageNum){
         String currentEpoch = web3jUtils.getCurrentEpoch();
         if (currentEpoch.equals(epoch)){
-            return BaseResponse.success(stakeRewardService.findCurrentEpochPage(pageSize, pageNum));
+            return BaseResponse.success(stakeRewardService.findCurrentEpochPage(pageSize, pageNum, orderBy, sorted));
         }
-        return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum - 1));
+        return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum - 1, orderBy, sorted));
     }
 
     @ApiOperation(value = "Stake Reward list")

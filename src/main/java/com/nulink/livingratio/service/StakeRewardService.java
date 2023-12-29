@@ -25,9 +25,8 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.Timestamp;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -151,8 +150,8 @@ public class StakeRewardService {
     }
 
     @Async
-    @Scheduled(cron = "0 0 * * * ?")
-    //@Scheduled(cron = "0 0/5 * * * ? ")
+    //@Scheduled(cron = "0 0 * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ? ")
     @Transactional
     public void livingRatio() {
         synchronized (livingRatioTaskKey) {
@@ -303,11 +302,11 @@ public class StakeRewardService {
     }
 
     private String getStakingAmount(String stakingAddress, String epochTime){
-        Stake unStake = stakeRepository.findFirstByUserAndEventAndCreateTimeBeforeOrderByCreateTimeDesc(stakingAddress, UN_STAKE_EVENT, new Date(Long.parseLong(epochTime) * 1000));
+        Stake unStake = stakeRepository.findFirstByUserAndEventAndCreateTimeBeforeOrderByCreateTimeDesc(stakingAddress, UN_STAKE_EVENT, new Timestamp(Long.parseLong(epochTime) * 1000));
         List<Stake> stakes;
         if (unStake != null) {
-            Date unStakeCreateTime = unStake.getCreateTime();
-            stakes = stakeRepository.findAllByUserAndEventAndCreateTimeBetween(stakingAddress, STAKE_EVENT, unStakeCreateTime, new Date(Long.parseLong(epochTime) * 1000));
+            Timestamp unStakeCreateTime = unStake.getCreateTime();
+            stakes = stakeRepository.findAllByUserAndEventAndCreateTimeBetween(stakingAddress, STAKE_EVENT, unStakeCreateTime, new Timestamp(Long.parseLong(epochTime) * 1000));
         } else {
             stakes = stakeRepository.findAllByUser(stakingAddress);
         }

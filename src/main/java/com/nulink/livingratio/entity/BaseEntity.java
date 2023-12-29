@@ -14,11 +14,11 @@ public abstract class BaseEntity {
     protected long id;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @Column(name = "create_time", nullable = false)
+    @Column(name = "create_time", nullable = false, columnDefinition = "timestamp DEFAULT CURRENT_TIMESTAMP")
     private Timestamp createTime;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @Column(name = "last_update_time", nullable = false)
+    @Column(name = "last_update_time", nullable = false, columnDefinition = "timestamp DEFAULT CURRENT_TIMESTAMP")
     private Timestamp lastUpdateTime;
 
     public BaseEntity() {
@@ -32,7 +32,7 @@ public abstract class BaseEntity {
         this.id = id;
     }
 
-    public Date getCreateTime() {
+    public Timestamp getCreateTime() {
         return createTime;
     }
 
@@ -40,7 +40,7 @@ public abstract class BaseEntity {
         this.createTime = createTime;
     }
 
-    public Date getLastUpdateTime() {
+    public Timestamp getLastUpdateTime() {
         return lastUpdateTime;
     }
 

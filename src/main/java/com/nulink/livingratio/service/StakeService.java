@@ -6,6 +6,7 @@ import com.nulink.livingratio.utils.Web3jUtils;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class StakeService {
     }
 
     public List<Stake> findValidStakeByEpoch(String epoch){
-        return stakeRepository.findValidStakeByEpoch(web3jUtils.getEpochStartTime(epoch));
+        return stakeRepository.findValidStakeByEpoch(new Timestamp(Long.parseLong(web3jUtils.getEpochStartTime(epoch)) * 1000));
     }
 
     public String totalStakingNode(){

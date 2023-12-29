@@ -82,7 +82,14 @@ public class StakeRewardOverviewService {
         if (!stakeRewards.isEmpty()){
             return getStakeRewardOverview(stakeRewards, epoch);
         } else {
-            return null;
+            StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
+            List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(epoch));
+            List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+            String sum = sum(reward);
+            sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(epoch))).toString();
+            stakeRewardOverview.setAccumulatedReward(sum);
+            stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(epoch));
+            return stakeRewardOverview;
         }
     }
 

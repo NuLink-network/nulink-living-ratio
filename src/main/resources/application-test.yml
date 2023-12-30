@@ -1,6 +1,10 @@
 server:
   port: 8091
 spring:
+  data:
+    redis:
+      repositories:
+        enabled: false
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource

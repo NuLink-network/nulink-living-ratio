@@ -41,7 +41,7 @@ public interface StakeRepository extends PagingAndSortingRepository<Stake, Long>
 
     Stake findFirstByUserAndEventAndCreateTimeBeforeOrderByCreateTimeDesc(String user, String event, Timestamp createTIme);
 
-    List<Stake> findAllByUserAndEventAndCreateTimeBetween(String user, String event, Date startTime, Timestamp endTime);
+    List<Stake> findAllByUserAndEventAndCreateTimeBetween(String user, String event, Timestamp startTime, Timestamp endTime);
 
     List<Stake> findAllByUser(String user);
 

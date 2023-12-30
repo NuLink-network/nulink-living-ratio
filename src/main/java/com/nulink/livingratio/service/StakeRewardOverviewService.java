@@ -45,6 +45,16 @@ public class StakeRewardOverviewService {
             List<StakeReward> previousEpochStakeReward = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
             if (!previousEpochStakeReward.isEmpty()){
                 stakeRewardOverviewRepository.save(getStakeRewardOverview(previousEpochStakeReward, previousEpoch));
+            }else {
+                StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
+                List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(previousEpoch));
+                List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+                String sum = sum(reward);
+                sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(previousEpoch))).toString();
+                stakeRewardOverview.setEpoch(previousEpoch);
+                stakeRewardOverview.setAccumulatedReward(sum);
+                stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(previousEpoch));
+                stakeRewardOverviewRepository.save(stakeRewardOverview);
             }
         }
     }
@@ -71,7 +81,7 @@ public class StakeRewardOverviewService {
         return stakeRewardOverview;
     }
 
-    @Cacheable(cacheNames = "StakeRewardOverview", key = "#epoch")
+    //@Cacheable(cacheNames = "StakeRewardOverview", key = "#epoch")
     public StakeRewardOverview findEpoch(String epoch){
         return stakeRewardOverviewRepository.findByEpoch(epoch);
     }

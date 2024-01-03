@@ -13,10 +13,9 @@ import com.nulink.livingratio.vo.PorterRequestVO;
 import lombok.extern.log4j.Log4j2;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -375,19 +374,25 @@ public class StakeRewardService {
     }
 
     public boolean checkNode(String stakeAddress) throws IOException {
-        OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
-        HttpUrl.Builder urlBuilder = HttpUrl.parse(porterServiceUrl + CHECK_URSULA_API).newBuilder();
-        urlBuilder.addQueryParameter("staker_address", stakeAddress);
-        String url = urlBuilder.build().toString();
-        Request request = new Request.Builder().url(url).build();
-        Response response = client.newCall(request).execute();
-        if (response.isSuccessful()) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode jsonNode = objectMapper.readTree(response.body().string());
-            return jsonNode.has("result") && jsonNode.get("result").has("data");
-        } else {
-            log.error("check ursula failed. Response code: " + response.code());
-            throw new RuntimeException("check ursula failed. Response code: " + response.code());
+        try{
+            OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
+            HttpUrl.Builder urlBuilder = HttpUrl.parse(porterServiceUrl + CHECK_URSULA_API).newBuilder();
+            urlBuilder.addQueryParameter("staker_address", stakeAddress);
+            String url = urlBuilder.build().toString();
+            Request request = new Request.Builder().url(url).build();
+            Response response = client.newCall(request).execute();
+            if (response.isSuccessful()) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readTree(response.body().string());
+                response.body().close();
+                return jsonNode.has("result") && jsonNode.get("result").has("data");
+            } else {
+                log.error("check ursula failed. Response code: " + response.code());
+                return false;
+            }
+        } catch (Exception e){
+            log.error("check ursula failed. -" + stakeAddress + "-" + e.getMessage());
+            return false;
         }
     }
 
@@ -449,69 +454,44 @@ public class StakeRewardService {
     }
 
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum, String orderBy, String sorted){
-        Sort sort = Sort.by(Sort.Direction.DESC,"createTime");
-        if (ASC_SORT.equalsIgnoreCase(sorted)){
-            sort = Sort.by(Sort.Direction.ASC, orderBy);
-        }
-        if (DESC_SORT.equalsIgnoreCase(sorted)){
-            sort = Sort.by(Sort.Direction.DESC, orderBy);
-        }
-
-        Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
-        Specification<StakeReward> specification = (root, query, criteriaBuilder) -> {
-            if (StringUtils.isNotEmpty(epoch)) {
-                return criteriaBuilder.equal(root.get("epoch"), epoch);
-            }
-            return null;
-        };
-        return stakeRewardRepository.findAll(specification, pageable);
+        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+        return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
     }
 
     public Page<StakeReward> findCurrentEpochPage(int pageSize, int pageNum, String orderBy, String sorted){
         String epoch = web3jUtils.getCurrentEpoch();
         List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
         countStakeReward(stakeRewards, epoch);
-        if (ASC_SORT.equalsIgnoreCase(sorted)){
-            if ("livingRatio".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getLivingRatio)).collect(Collectors.toList());
-            }
-            if ("stakingAmount".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getStakingAmount)).collect(Collectors.toList());
-            }
-            if ("stakingReward".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getStakingReward)).collect(Collectors.toList());
-            }
-            if ("validStakingAmount".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getValidStakingAmount)).collect(Collectors.toList());
-            }
-            if ("validStakingQuota".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getValidStakingQuota)).collect(Collectors.toList());
-            }
+        return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
+    }
+
+    @NotNull
+    private Page<StakeReward> pageHelper(int pageSize, int pageNum, String orderBy, String sorted, List<StakeReward> stakeRewards) {
+        Comparator<StakeReward> comparator = null;
+        if ("livingRatio".equalsIgnoreCase(orderBy)) {
+            comparator = Comparator.comparing(sr -> new BigDecimal(sr.getLivingRatio()));
+        } else if ("stakingAmount".equalsIgnoreCase(orderBy)) {
+            comparator = Comparator.comparing(sr -> new BigDecimal(sr.getStakingAmount()));
+        } else if ("stakingReward".equalsIgnoreCase(orderBy)) {
+            comparator = Comparator.comparing(sr -> new BigDecimal(sr.getStakingReward()));
+        } else if ("validStakingAmount".equalsIgnoreCase(orderBy)) {
+            comparator = Comparator.comparing(sr -> new BigDecimal(sr.getValidStakingAmount()));
+        } else if ("validStakingQuota".equalsIgnoreCase(orderBy)) {
+            comparator = Comparator.comparing(sr -> new BigDecimal(sr.getValidStakingQuota()));
         }
-        if (DESC_SORT.equalsIgnoreCase(sorted)){
-            if ("livingRatio".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getLivingRatio).reversed()).collect(Collectors.toList());
+
+        if (comparator != null) {
+            if (DESC_SORT.equalsIgnoreCase(sorted)) {
+                comparator = comparator.reversed();
             }
-            if ("stakingAmount".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getStakingAmount).reversed()).collect(Collectors.toList());
-            }
-            if ("stakingReward".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getStakingReward).reversed()).collect(Collectors.toList());
-            }
-            if ("validStakingAmount".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getValidStakingAmount).reversed()).collect(Collectors.toList());
-            }
-            if ("validStakingQuota".equalsIgnoreCase(orderBy)){
-                stakeRewards = stakeRewards.stream().sorted(Comparator.comparing(StakeReward::getValidStakingQuota).reversed()).collect(Collectors.toList());
-            }
+            Collections.sort(stakeRewards, comparator);
         }
 
         int endIndex = pageNum * pageSize;
         int size = stakeRewards.size();
-        endIndex =  endIndex > size?size:endIndex;
+        endIndex = Math.min(endIndex, size);
         List<StakeReward> subList = stakeRewards.subList((pageNum - 1) * pageSize, endIndex);
-        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Order.asc("createTime")));
-        return new PageImpl<>(subList, pageable, size);
+        return new PageImpl<>(subList, PageRequest.of(pageNum - 1, pageSize), size);
     }
 
     public List<StakeReward> list(String epoch){

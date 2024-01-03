@@ -36,7 +36,7 @@ public class HttpClientUtil {
 
             OkHttpClient.Builder builder = new OkHttpClient.Builder();
             builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
-            return builder.connectTimeout(15, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS).build();
+            return builder.connectTimeout(20, TimeUnit.SECONDS).readTimeout(25, TimeUnit.SECONDS).build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

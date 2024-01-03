@@ -141,6 +141,7 @@ public class CheckNodeExecutor {
                         log.error(serverStatus.getServer() +":" + serverStatus.getStakingProvider() + "----" + serverStatus.getServer());
                         result = false;
                     }
+                    response.close();
                 } catch (Exception e) {
                     log.error(serverStatus.getServer() + " connect failure:" + e.getMessage());
                     result = false;

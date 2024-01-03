@@ -49,7 +49,7 @@ public class StakeRewardController {
         if (currentEpoch.equals(epoch)){
             return BaseResponse.success(stakeRewardService.findCurrentEpochPage(pageSize, pageNum, orderBy, sorted));
         }
-        return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum - 1, orderBy, sorted));
+        return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum, orderBy, sorted));
     }
 
     @ApiOperation(value = "Stake Reward list")

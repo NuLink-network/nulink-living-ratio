@@ -252,22 +252,27 @@ public class StakeRewardService {
             }
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = true;
         }
-
-        String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
-        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
-        if (stakeRewards.isEmpty()){
+        try{
+            String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
+            if (stakeRewards.isEmpty()){
+                StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
+                return;
+            }
+            if (null == stakeRewards.get(0).getStakingReward()){
+                countStakeReward(stakeRewards, previousEpoch);
+                stakeRewardRepository.saveAll(stakeRewards);
+                SetLivingRatio setLivingRatio = new SetLivingRatio();
+                setLivingRatio.setSetLivingRatio(false);
+                setLivingRatio.setEpoch(previousEpoch);
+                setLivingRatioRepository.save(setLivingRatio);
+            }
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
-            return;
+        } catch (Exception e){
+            log.error(e.getMessage());
+            StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
         }
-        if (null == stakeRewards.get(0).getStakingReward()){
-            countStakeReward(stakeRewards, previousEpoch);
-            stakeRewardRepository.saveAll(stakeRewards);
-            SetLivingRatio setLivingRatio = new SetLivingRatio();
-            setLivingRatio.setSetLivingRatio(false);
-            setLivingRatio.setEpoch(previousEpoch);
-            setLivingRatioRepository.save(setLivingRatio);
-        }
-        StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
+
     }
 
     public void countStakeReward(List<StakeReward> stakeRewards, String epoch){
@@ -329,24 +334,37 @@ public class StakeRewardService {
      * @return
      */
     public List<String> findNodeAddress(List<String> stakingAddress) throws IOException{
-    Map<String, List<String>> requestMap = new HashMap<>();
-    requestMap.put("include_ursulas", stakingAddress);
-        MediaType mediaType = MediaType.parse("application/json");
-        ObjectMapper objectMapper = new ObjectMapper();
-        String requestJson = objectMapper.writeValueAsString(requestMap);
-        RequestBody requestBody =  RequestBody.create(mediaType, requestJson);
-        OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
-        Request request = new Request.Builder().url(porterServiceUrl + INCLUDE_URSULA).post(requestBody).build();
 
-        Response response = client.newCall(request).execute();
-        if (response.isSuccessful()){
-            PorterRequestVO porterRequestVO = objectMapper.readValue(response.body().string(), PorterRequestVO.class);
-            return porterRequestVO.getResult().getList();
-        } else {
+        List<String> result = new ArrayList<>();
+        int batchSize = 500;
+        int totalElements = stakingAddress.size();
+        int batches = (int) Math.ceil((double) totalElements / batchSize);
+
+        OkHttpClient client = HttpClientUtil.getUnsafeOkHttpClient();
+        ObjectMapper objectMapper = new ObjectMapper();
+        MediaType mediaType = MediaType.parse("application/json");
+        String url = porterServiceUrl + INCLUDE_URSULA;
+        for (int i = 0; i < batches; i++) {
+            int fromIndex = i * batchSize;
+            int toIndex = Math.min((i + 1) * batchSize, totalElements);
+            List<String> batchList = stakingAddress.subList(fromIndex, toIndex);
+
+            Map<String, List<String>> requestMap = new HashMap<>();
+            requestMap.put("include_ursulas", batchList);
+            String requestJson = objectMapper.writeValueAsString(requestMap);
+            RequestBody requestBody = RequestBody.create(mediaType, requestJson);
+            Request request = new Request.Builder().url(url).post(requestBody).build();
+
+            Response response = client.newCall(request).execute();
+            if (response.isSuccessful()) {
+                PorterRequestVO porterRequestVO = objectMapper.readValue(response.body().string(), PorterRequestVO.class);
+                result.addAll(porterRequestVO.getResult().getList());
+            } else {
+                log.error("Failed to fetch work address for batch: " + i);
+            }
             response.close();
-            log.error("Failed to fetch work address");
-            return null;
         }
+        return result;
     }
 
     public boolean pingNode(String nodeAddress) {

@@ -19,6 +19,7 @@ import org.springframework.data.domain.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import javax.transaction.Transactional;
 import java.io.IOException;
@@ -79,7 +80,7 @@ public class StakeRewardService {
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
     @Async
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    //@Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void generateCurrentEpochValidStakeReward(){
         synchronized (generateCurrentEpochValidStakeRewardTaskKey) {
@@ -261,7 +262,7 @@ public class StakeRewardService {
             }
             if (null == stakeRewards.get(0).getStakingReward()){
                 countStakeReward(stakeRewards, previousEpoch);
-                stakeRewardRepository.saveAll(stakeRewards);
+                batchSaveStakeRewards(stakeRewards);
                 SetLivingRatio setLivingRatio = new SetLivingRatio();
                 setLivingRatio.setSetLivingRatio(false);
                 setLivingRatio.setEpoch(previousEpoch);
@@ -272,7 +273,15 @@ public class StakeRewardService {
             log.error(e.getMessage());
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
         }
+    }
 
+    public void batchSaveStakeRewards(List<StakeReward> stakeRewards) {
+        int batchSize = 500;
+        for (int i = 0; i < stakeRewards.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, stakeRewards.size());
+            List<StakeReward> sublist = stakeRewards.subList(i, endIndex);
+            stakeRewardRepository.saveAll(sublist);
+        }
     }
 
     public void countStakeReward(List<StakeReward> stakeRewards, String epoch){

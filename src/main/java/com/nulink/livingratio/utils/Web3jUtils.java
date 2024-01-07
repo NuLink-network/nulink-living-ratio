@@ -261,7 +261,7 @@ public class Web3jUtils {
                 EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();
                 BigInteger nonce = ethGetTransactionCount.getTransactionCount();
 
-                /*Transaction transaction = Transaction.createFunctionCallTransaction(
+                Transaction transaction = Transaction.createFunctionCallTransaction(
                         fromAddress,
                         nonce,
                         BigInteger.ZERO,
@@ -270,11 +270,12 @@ public class Web3jUtils {
                         encodedFunction
                 );
 
-                BigInteger transactionGasLimit = getTransactionGasLimit(transaction);*/
+                BigInteger transactionGasLimit = getTransactionGasLimit(transaction);
 
                 BigInteger ethGasPrice = getGasPrice();
 
-                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
+                //RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
+                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit.multiply(new BigInteger("2")), contractAddress, encodedFunction);
 
                 byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);
@@ -568,7 +569,7 @@ public class Web3jUtils {
         return null;
     }
 
-    public String setLiveRatio(String epoch, List<String> stakingProviders, List<String> liveRatios) throws IOException, ExecutionException, InterruptedException {
+    public String setLiveRatio(String epoch, List<String> stakingProviders, List<String> liveRatios, boolean finish) throws IOException, ExecutionException, InterruptedException {
 
         List<Address> addresses = stakingProviders.stream().map(Address::new).collect(Collectors.toList());
 
@@ -576,7 +577,7 @@ public class Web3jUtils {
 
         List<Type> inputParameters = new ArrayList<>();
         inputParameters.add(new Uint16(Long.parseLong(epoch)));
-        inputParameters.add(new Bool(true));
+        inputParameters.add(new Bool(finish));
         inputParameters.add(new DynamicArray(Address.class, addresses));
         inputParameters.add(new DynamicArray(Uint16.class, list));
         List<TypeReference<?>> outputParameters = new ArrayList<>();

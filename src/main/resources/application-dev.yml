@@ -1,10 +1,6 @@
 server:
   port: 8092
 spring:
-  data:
-    redis:
-      repositories:
-        enabled: false
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
@@ -22,15 +18,7 @@ spring:
       connection-test-query: SELECT 1
       transaction:
         rollback-on-commit-failure: true
-  cache:
-    type: redis
-    redis:
-      cache-null-values: true
-      time-to-live: 10000
-  redis:
-    port: 6379
-    host: 127.0.0.1
-    password: Nulink@2023Redis
+
   jpa:
     hibernate:
       ddl-auto: update

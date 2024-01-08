@@ -19,8 +19,13 @@ import org.springframework.data.domain.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import javax.annotation.Resource;
 import javax.transaction.Transactional;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -64,6 +69,9 @@ public class StakeRewardService {
     private final Web3jUtils web3jUtils;
     private final SetLivingRatioRepository setLivingRatioRepository;
 
+    @Resource
+    private PlatformTransactionManager platformTransactionManager;
+
     public StakeRewardService(StakeRewardRepository stakeRewardRepository,
                               StakeRepository stakeRepository,
                               StakeService stakeService,
@@ -80,7 +88,7 @@ public class StakeRewardService {
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
     @Async
-    //@Scheduled(cron = "0 0/1 * * * ? ")
+    @Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void generateCurrentEpochValidStakeReward(){
         synchronized (generateCurrentEpochValidStakeRewardTaskKey) {
@@ -90,6 +98,11 @@ public class StakeRewardService {
             }
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = true;
         }
+
+        DefaultTransactionDefinition transactionDefinition= new DefaultTransactionDefinition();
+        transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
+
         try{
             String currentEpoch = web3jUtils.getCurrentEpoch();
             String currentEpochStartTime = web3jUtils.getEpochStartTime(currentEpoch);
@@ -140,9 +153,10 @@ public class StakeRewardService {
                 stakeRewards.add(stakeReward);
             });
             stakeRewardRepository.saveAll(stakeRewards);
-
+            platformTransactionManager.commit(status);
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
         }catch (Exception e){
+            platformTransactionManager.rollback(status);
             log.error("The generate Current Epoch Valid StakeReward task fail:" + e.getMessage());
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
         }
@@ -161,6 +175,11 @@ public class StakeRewardService {
             }
             StakeRewardService.livingRatioTaskFlag = true;
         }
+
+        DefaultTransactionDefinition transactionDefinition= new DefaultTransactionDefinition();
+        transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
+
         try{
             String epoch = web3jUtils.getCurrentEpoch();
             if (Integer.parseInt(epoch) < 1){
@@ -229,10 +248,12 @@ public class StakeRewardService {
                 stakeReward.setLivingRatio(new BigDecimal(stakeReward.getConnectable()).divide(new BigDecimal(stakeReward.getPingCount()), 4, RoundingMode.HALF_UP).toString());
             }
             stakeRewardRepository.saveAll(stakeRewards);
+            platformTransactionManager.commit(status);
             log.info("living ratio task finish ...........................");
             StakeRewardService.livingRatioTaskFlag = false;
         }catch (Exception e){
             log.error("The living Ratio task is failed");
+            platformTransactionManager.rollback(status);
             StakeRewardService.livingRatioTaskFlag = false;
             throw new RuntimeException(e);
         }finally {
@@ -248,11 +269,16 @@ public class StakeRewardService {
 
         synchronized (countPreviousEpochStakeRewardTaskKey) {
             if (StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag) {
-                log.warn("The set living ratio task is already in progress");
+                log.warn("The count Previous Epoch Stake Reward task is already in progress");
                 return;
             }
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = true;
         }
+
+        DefaultTransactionDefinition transactionDefinition= new DefaultTransactionDefinition();
+        transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
+
         try{
             String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
             List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
@@ -262,25 +288,18 @@ public class StakeRewardService {
             }
             if (null == stakeRewards.get(0).getStakingReward()){
                 countStakeReward(stakeRewards, previousEpoch);
-                batchSaveStakeRewards(stakeRewards);
+                stakeRewardRepository.saveAll(stakeRewards);
                 SetLivingRatio setLivingRatio = new SetLivingRatio();
                 setLivingRatio.setSetLivingRatio(false);
                 setLivingRatio.setEpoch(previousEpoch);
                 setLivingRatioRepository.save(setLivingRatio);
             }
+            platformTransactionManager.commit(status);
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
         } catch (Exception e){
-            log.error(e.getMessage());
+            log.error("error", e);
+            platformTransactionManager.rollback(status);
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
-        }
-    }
-
-    public void batchSaveStakeRewards(List<StakeReward> stakeRewards) {
-        int batchSize = 500;
-        for (int i = 0; i < stakeRewards.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, stakeRewards.size());
-            List<StakeReward> sublist = stakeRewards.subList(i, endIndex);
-            stakeRewardRepository.saveAll(sublist);
         }
     }
 

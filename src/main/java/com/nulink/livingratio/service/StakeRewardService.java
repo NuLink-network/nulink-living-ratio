@@ -99,6 +99,8 @@ public class StakeRewardService {
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = true;
         }
 
+        log.info("The generate Current Epoch Valid StakeReward task is beginning");
+
         DefaultTransactionDefinition transactionDefinition= new DefaultTransactionDefinition();
         transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
@@ -113,6 +115,7 @@ public class StakeRewardService {
             List<StakeReward> stakeRewardList = stakeRewardRepository.findAllByEpoch(currentEpoch);
             if (!stakeRewardList.isEmpty()){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+                log.info("The Current Epoch Valid StakeReward task has already been executed.");
                 return;
             }
             List<Stake> validStake = stakeService.findValidStakeByEpoch(currentEpoch);
@@ -155,9 +158,12 @@ public class StakeRewardService {
             stakeRewardRepository.saveAll(stakeRewards);
             platformTransactionManager.commit(status);
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+            log.info("The generate Current Epoch Valid StakeReward task is finish");
         }catch (Exception e){
             platformTransactionManager.rollback(status);
-            log.error("The generate Current Epoch Valid StakeReward task fail:" + e.getMessage());
+            log.error("The generate Current Epoch Valid StakeReward task fail:" + e);
+            StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+        }finally {
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
         }
 
@@ -210,10 +216,7 @@ public class StakeRewardService {
             }
             List<CheckNodeExecutor.ServerStatus> serverStatusesResult = checkNodeExecutor.executePingTasks(serverStatuses);
             Map<String, Boolean> nodeCheckMap = new HashMap<>();
-            serverStatusesResult.forEach(serverStatus -> {
-                log.info(serverStatus.getStakingProvider() + "-----------" + serverStatus.isOnline());
-                nodeCheckMap.put(serverStatus.getStakingProvider(), serverStatus.isOnline());
-            });
+            serverStatusesResult.forEach(serverStatus -> nodeCheckMap.put(serverStatus.getStakingProvider(), serverStatus.isOnline()));
             checkNodeExecutor.shutdown(); // check node finish , executor shutdown
 
             for (StakeReward stakeReward : stakeRewards) {
@@ -275,6 +278,8 @@ public class StakeRewardService {
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = true;
         }
 
+        log.info("The count Previous Epoch Stake Reward task is beginning");
+
         DefaultTransactionDefinition transactionDefinition= new DefaultTransactionDefinition();
         transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
@@ -293,12 +298,17 @@ public class StakeRewardService {
                 setLivingRatio.setSetLivingRatio(false);
                 setLivingRatio.setEpoch(previousEpoch);
                 setLivingRatioRepository.save(setLivingRatio);
+            } else {
+                log.info("The count Previous Epoch Stake Reward task has already been executed.");
             }
             platformTransactionManager.commit(status);
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
+            log.info("The count Previous Epoch Stake Reward task is finish");
         } catch (Exception e){
-            log.error("error", e);
+            log.error("The count Previous Epoch Stake Reward task is fail", e);
             platformTransactionManager.rollback(status);
+            StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
+        } finally {
             StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
         }
     }

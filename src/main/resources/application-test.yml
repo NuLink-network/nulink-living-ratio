@@ -10,7 +10,7 @@ spring:
     hikari:
       minimum-idle: 5
       idle-timeout: 600000
-      maximum-pool-size: 100
+      maximum-pool-size: 150
       auto-commit: true
       pool-name: XCarHikariCP
       max-lifetime: 28770000

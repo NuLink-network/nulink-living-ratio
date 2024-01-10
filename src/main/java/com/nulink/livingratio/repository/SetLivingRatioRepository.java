@@ -14,6 +14,8 @@ public interface SetLivingRatioRepository extends PagingAndSortingRepository<Set
 
     List<SetLivingRatio> findAllBySetLivingRatioOrderByCreateTimeDesc(boolean setLivingRatio);
 
+    SetLivingRatio findByEpoch(String epoch);
+
 }
 
 

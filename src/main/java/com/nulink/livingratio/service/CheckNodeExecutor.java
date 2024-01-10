@@ -21,7 +21,7 @@ public class CheckNodeExecutor {
     private CompletionService<ServerStatus> completionService;
 
     public CheckNodeExecutor() {
-        executor = Executors.newFixedThreadPool(20);
+        executor = Executors.newFixedThreadPool(30);
         completionService = new ExecutorCompletionService<>(executor);
     }
 

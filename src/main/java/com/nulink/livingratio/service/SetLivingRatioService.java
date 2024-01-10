@@ -13,6 +13,7 @@ import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
 import javax.transaction.Transactional;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +24,9 @@ import java.util.stream.Collectors;
 public class SetLivingRatioService {
 
     private static final Object setLivingRatioTaskKey = new Object();
+    private static final Object setUnLivingRatioTaskKey = new Object();
     private static boolean lockSetLivingRatioTaskFlag = false;
+    private static boolean lockSetUnLivingRatioTaskFlag = false;
 
     private final Web3jUtils web3jUtils;
     private final SetLivingRatioRepository setLivingRatioRepository;
@@ -44,6 +47,34 @@ public class SetLivingRatioService {
 
     public List<SetLivingRatio> findUnset(){
         return setLivingRatioRepository.findAllBySetLivingRatioOrderByCreateTimeDesc(false);
+    }
+
+    @Async
+    @Scheduled(cron = "0 0/1 * * * ? ")
+    @Transactional
+    public void setUnLivingRatio(){
+        synchronized (setUnLivingRatioTaskKey) {
+            if (SetLivingRatioService.lockSetUnLivingRatioTaskFlag) {
+                log.warn("The un set living ratio task is already in progress");
+                return;
+            }
+            SetLivingRatioService.lockSetUnLivingRatioTaskFlag = true;
+        }
+        try{
+            String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
+            SetLivingRatio livingRatio = setLivingRatioRepository.findByEpoch(previousEpoch);
+            if (null == livingRatio){
+                SetLivingRatio setLivingRatio = new SetLivingRatio();
+                setLivingRatio.setEpoch(previousEpoch);
+                setLivingRatio.setSetLivingRatio(false);
+                setLivingRatioRepository.save(setLivingRatio);
+            } else {
+                log.warn("The unSet living ratio task has already been executed");
+            }
+            SetLivingRatioService.lockSetUnLivingRatioTaskFlag = false;
+        } catch (Exception e){
+            SetLivingRatioService.lockSetUnLivingRatioTaskFlag = false;
+        }
     }
 
     @Async

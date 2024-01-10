@@ -267,7 +267,6 @@ public class StakeRewardService {
 
     @Async
     @Scheduled(cron = "0 0/1 * * * ? ")
-    @Transactional
     public void countPreviousEpochStakeReward(){
 
         synchronized (countPreviousEpochStakeRewardTaskKey) {
@@ -294,10 +293,6 @@ public class StakeRewardService {
             if (null == stakeRewards.get(0).getStakingReward()){
                 countStakeReward(stakeRewards, previousEpoch);
                 stakeRewardRepository.saveAll(stakeRewards);
-                SetLivingRatio setLivingRatio = new SetLivingRatio();
-                setLivingRatio.setSetLivingRatio(false);
-                setLivingRatio.setEpoch(previousEpoch);
-                setLivingRatioRepository.save(setLivingRatio);
             } else {
                 log.info("The count Previous Epoch Stake Reward task has already been executed.");
             }

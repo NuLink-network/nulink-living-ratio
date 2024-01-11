@@ -322,7 +322,7 @@ public class StakeRewardService {
             String currentEpochReward = web3jUtils.getEpochReward(epoch);
             for (StakeReward stakeReward : stakeRewards) {
                 if (new BigDecimal(totalValidStakingAmount).compareTo(BigDecimal.ZERO) > 0){
-                    String validStakingQuota = new BigDecimal(stakeReward.getValidStakingAmount()).divide(new BigDecimal(totalValidStakingAmount),4, RoundingMode.HALF_UP).toString();
+                    String validStakingQuota = new BigDecimal(stakeReward.getValidStakingAmount()).divide(new BigDecimal(totalValidStakingAmount),6, RoundingMode.HALF_UP).toString();
                     stakeReward.setValidStakingQuota(validStakingQuota);
                     stakeReward.setStakingReward(new BigDecimal(validStakingQuota).multiply(new BigDecimal(currentEpochReward)).setScale(0, RoundingMode.HALF_UP).toString());
                 } else {

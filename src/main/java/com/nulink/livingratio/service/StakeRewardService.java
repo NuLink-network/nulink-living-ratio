@@ -89,7 +89,6 @@ public class StakeRewardService {
     // When the epoch starts, generate the list of stake rewards for the previous epoch
     @Async
     @Scheduled(cron = "0 0/1 * * * ? ")
-    @Transactional
     public void generateCurrentEpochValidStakeReward(){
         synchronized (generateCurrentEpochValidStakeRewardTaskKey) {
             if (StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag) {
@@ -110,17 +109,20 @@ public class StakeRewardService {
             String currentEpochStartTime = web3jUtils.getEpochStartTime(currentEpoch);
             if (Integer.valueOf(currentEpoch) < 1){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+                platformTransactionManager.commit(status);
                 return;
             }
             List<StakeReward> stakeRewardList = stakeRewardRepository.findAllByEpoch(currentEpoch);
             if (!stakeRewardList.isEmpty()){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
                 log.info("The Current Epoch Valid StakeReward task has already been executed.");
+                platformTransactionManager.commit(status);
                 return;
             }
             List<Stake> validStake = stakeService.findValidStakeByEpoch(currentEpoch);
             if (validStake.isEmpty()){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+                platformTransactionManager.commit(status);
                 return;
             }
             validStake = validStake.stream().filter(stake -> !stake.getAmount().equals("0")).collect(Collectors.toList());
@@ -166,7 +168,6 @@ public class StakeRewardService {
         }finally {
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
         }
-
     }
 
     @Async
@@ -190,6 +191,7 @@ public class StakeRewardService {
             String epoch = web3jUtils.getCurrentEpoch();
             if (Integer.parseInt(epoch) < 1){
                 StakeRewardService.livingRatioTaskFlag = false;
+                platformTransactionManager.commit(status);
                 return;
             }
             log.info("living ratio task start ...........................");
@@ -288,6 +290,7 @@ public class StakeRewardService {
             List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
             if (stakeRewards.isEmpty()){
                 StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
+                platformTransactionManager.commit(status);
                 return;
             }
             if (null == stakeRewards.get(0).getStakingReward()){
@@ -447,7 +450,6 @@ public class StakeRewardService {
         }
     }
 
-    @Transactional
     public StakeReward nodeInfo(String stakingProvider){
         Stake stake = stakeRepository.findFirstByUserAndEventOrderByCreateTimeDesc(stakingProvider, STAKE_EVENT);
         if (null == stake){

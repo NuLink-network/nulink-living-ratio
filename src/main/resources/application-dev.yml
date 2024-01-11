@@ -13,11 +13,12 @@ spring:
       maximum-pool-size: 100
       auto-commit: true
       pool-name: XCarHikariCP
-      max-lifetime: 28770000
-      connection-timeout: 30000
+      max-lifetime: 3600000
+      connection-timeout: 60000
       connection-test-query: SELECT 1
       transaction:
         rollback-on-commit-failure: true
+      leak-detection-threshold: 3500000
 
   jpa:
     hibernate:
@@ -26,6 +27,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: false
 
 contracts:
   start: 36261400

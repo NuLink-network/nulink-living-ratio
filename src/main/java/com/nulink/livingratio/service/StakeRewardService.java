@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.annotation.Resource;
@@ -67,7 +66,7 @@ public class StakeRewardService {
     private final StakeService stakeService;
     private final BondRepository bondRepository;
     private final Web3jUtils web3jUtils;
-    private final SetLivingRatioRepository setLivingRatioRepository;
+    private final IncludeUrsulaService includeUrsulaService;
 
     @Resource
     private PlatformTransactionManager platformTransactionManager;
@@ -77,13 +76,13 @@ public class StakeRewardService {
                               StakeService stakeService,
                               BondRepository bondRepository,
                               Web3jUtils web3jUtils,
-                              SetLivingRatioRepository setLivingRatioRepository) {
+                              IncludeUrsulaService includeUrsulaService) {
         this.stakeRewardRepository = stakeRewardRepository;
         this.stakeRepository = stakeRepository;
         this.stakeService = stakeService;
         this.bondRepository = bondRepository;
         this.web3jUtils = web3jUtils;
-        this.setLivingRatioRepository = setLivingRatioRepository;
+        this.includeUrsulaService = includeUrsulaService;
     }
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
@@ -221,6 +220,8 @@ public class StakeRewardService {
             serverStatusesResult.forEach(serverStatus -> nodeCheckMap.put(serverStatus.getStakingProvider(), serverStatus.isOnline()));
             checkNodeExecutor.shutdown(); // check node finish , executor shutdown
 
+            int connectable = 0;
+
             for (StakeReward stakeReward : stakeRewards) {
                 stakeReward.setPingCount(stakeReward.getPingCount() + 1);
                 String stakingProvider = stakeReward.getStakingProvider();
@@ -243,6 +244,7 @@ public class StakeRewardService {
                         Boolean b = nodeCheckMap.get(stakeReward.getStakingProvider());
                         if (b != null && b){
                             stakeReward.setConnectable(stakeReward.getConnectable() + 1);
+                            connectable ++;
                         } else {
                             stakeReward.setConnectFail(stakeReward.getConnectFail() + 1);
                         }
@@ -253,6 +255,7 @@ public class StakeRewardService {
                 stakeReward.setLivingRatio(new BigDecimal(stakeReward.getConnectable()).divide(new BigDecimal(stakeReward.getPingCount()), 4, RoundingMode.HALF_UP).toString());
             }
             stakeRewardRepository.saveAll(stakeRewards);
+            includeUrsulaService.setIncludeUrsula(connectable);
             platformTransactionManager.commit(status);
             log.info("living ratio task finish ...........................");
             StakeRewardService.livingRatioTaskFlag = false;

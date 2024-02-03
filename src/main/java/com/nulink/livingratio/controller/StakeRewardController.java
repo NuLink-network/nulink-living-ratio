@@ -1,5 +1,6 @@
 package com.nulink.livingratio.controller;
 
+import com.nulink.livingratio.dto.StakingRewardLeaderboardDTO;
 import com.nulink.livingratio.entity.StakeReward;
 import com.nulink.livingratio.service.StakeRewardService;
 import com.nulink.livingratio.utils.Web3jUtils;
@@ -62,6 +63,12 @@ public class StakeRewardController {
     @GetMapping("userTotalStakingReward")
     public BaseResponse<String> userTotalStakingReward(@RequestParam(value = "address") String address){
         return BaseResponse.success(stakeRewardService.userTotalStakingReward(address));
+    }
+
+    @ApiOperation(value = "check allOnline at least One Epoch")
+    @GetMapping("checkAllOnlineAtLeastOneEpoch/{stakingProvider}")
+    public BaseResponse<Boolean> checkAllOnlineWithinOneEpoch(@PathVariable String stakingProvider){
+        return BaseResponse.success(stakeRewardService.checkAllOnlineWithinOneEpoch(stakingProvider));
     }
 
 }

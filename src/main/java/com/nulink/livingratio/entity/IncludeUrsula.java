@@ -8,25 +8,25 @@ import javax.persistence.Table;
 @Table(name = "include_ursula")
 public class IncludeUrsula extends BaseEntity{
 
-    @Column(name = "key")
-    private String key;
+    @Column(name = "ursula_key")
+    private String ursulaKey;
 
-    @Column(name = "value")
-    private String value;
+    @Column(name = "ursula_value")
+    private String ursulaValue;
 
-    public String getKey() {
-        return key;
+    public String getUrsulaKey() {
+        return ursulaKey;
     }
 
-    public void setKey(String key) {
-        this.key = key;
+    public void setUrsulaKey(String ursulaKey) {
+        this.ursulaKey = ursulaKey;
     }
 
-    public String getValue() {
-        return value;
+    public String getUrsulaValue() {
+        return ursulaValue;
     }
 
-    public void setValue(String value) {
-        this.value = value;
+    public void setUrsulaValue(String ursulaValue) {
+        this.ursulaValue = ursulaValue;
     }
 }

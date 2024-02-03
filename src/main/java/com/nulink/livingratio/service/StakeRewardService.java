@@ -2,6 +2,7 @@ package com.nulink.livingratio.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nulink.livingratio.dto.StakingRewardLeaderboardDTO;
 import com.nulink.livingratio.entity.*;
 import com.nulink.livingratio.repository.BondRepository;
 import com.nulink.livingratio.repository.SetLivingRatioRepository;
@@ -170,8 +171,8 @@ public class StakeRewardService {
     }
 
     @Async
-    @Scheduled(cron = "0 0 * * * ?")
-    //@Scheduled(cron = "0 0/5 * * * ? ")
+    //@Scheduled(cron = "0 0 * * * ?")
+    @Scheduled(cron = "0 0/5 * * * ? ")
     @Transactional
     public void livingRatio() {
         synchronized (livingRatioTaskKey) {
@@ -573,4 +574,10 @@ public class StakeRewardService {
         }
         return total.toString();
     }
+
+    public boolean checkAllOnlineWithinOneEpoch(String stakingProvider){
+        int i = stakeRewardRepository.countStakingProviderAllOnlineEpoch(stakingProvider);
+        return i > 0;
+    }
+
 }

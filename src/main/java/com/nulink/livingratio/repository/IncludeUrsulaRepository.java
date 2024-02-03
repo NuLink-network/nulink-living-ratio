@@ -9,6 +9,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface IncludeUrsulaRepository extends PagingAndSortingRepository<IncludeUrsula, Long>, JpaSpecificationExecutor {
 
-    IncludeUrsula findByKey(String key);
+    IncludeUrsula findByUrsulaKey(String key);
 
 }

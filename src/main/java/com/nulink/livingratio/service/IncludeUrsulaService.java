@@ -22,13 +22,13 @@ public class IncludeUrsulaService {
     @Transactional
     public void setIncludeUrsula(int ursula){
         try{
-            IncludeUrsula includeUrsula = includeUrsulaRepository.findByKey(URSULA_KEY);
+            IncludeUrsula includeUrsula = includeUrsulaRepository.findByUrsulaKey(URSULA_KEY);
             if (includeUrsula == null) {
                 includeUrsula = new IncludeUrsula();
-                includeUrsula.setKey(URSULA_KEY);
-                includeUrsula.setValue(String.valueOf(ursula));
+                includeUrsula.setUrsulaKey(URSULA_KEY);
+                includeUrsula.setUrsulaValue(String.valueOf(ursula));
             } else {
-                includeUrsula.setValue(String.valueOf(ursula));
+                includeUrsula.setUrsulaValue(String.valueOf(ursula));
             }
             includeUrsulaRepository.save(includeUrsula);
         } catch (Exception e){
@@ -37,9 +37,9 @@ public class IncludeUrsulaService {
     }
 
     public String getUrsulaNum(){
-        IncludeUrsula includeUrsula = includeUrsulaRepository.findByKey(URSULA_KEY);
+        IncludeUrsula includeUrsula = includeUrsulaRepository.findByUrsulaKey(URSULA_KEY);
         if (includeUrsula != null){
-            return  includeUrsula.getValue();
+            return  includeUrsula.getUrsulaValue();
         } else {
             return String.valueOf(0);
         }

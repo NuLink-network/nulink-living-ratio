@@ -29,6 +29,6 @@ public class LeaderDashboardController {
     @GetMapping("/findByPage")
     public BaseResponse<Page<StakingRewardLeaderboard>> findByPage(@RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
                                                                   @RequestParam(value = "pageNum", defaultValue = "1") int pageNum){
-        return BaseResponse.success(stakingRewardLeaderboardService.findByPage(pageSize, pageNum));
+        return BaseResponse.success(stakingRewardLeaderboardService.findByPage(pageSize, pageNum - 1));
     }
 }

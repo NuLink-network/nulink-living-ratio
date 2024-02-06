@@ -128,7 +128,7 @@ public class StakingRewardLeaderboardService {
     }
 
     public Page<StakingRewardLeaderboard> findByPage(int pageSize, int pageNum){
-        Sort sort = Sort.by(Sort.Direction.DESC, "ranking");
+        Sort sort = Sort.by(Sort.Direction.ASC, "ranking");
         Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
         return stakingRewardLeaderboardRepository.findAll(pageable);
     }

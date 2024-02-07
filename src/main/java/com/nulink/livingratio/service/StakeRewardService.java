@@ -576,7 +576,8 @@ public class StakeRewardService {
     }
 
     public boolean checkAllOnlineWithinOneEpoch(String stakingProvider){
-        int i = stakeRewardRepository.countStakingProviderAllOnlineEpoch(stakingProvider);
+        String currentEpoch = web3jUtils.getCurrentEpoch();
+        int i = stakeRewardRepository.countStakingProviderAllOnlineEpoch(stakingProvider, currentEpoch);
         return i > 0;
     }
 

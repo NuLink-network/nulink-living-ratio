@@ -48,7 +48,7 @@ contracts:
       enabled: true
     -
       name: 'NLKFaucet'
-      address: '0xd2a09594c0944d662fa40cDE2FC1c084B88a7f0c'
+      address: '0x3cC6FC1035465d5b238F04097dF272Fe9b60EB94'
       enabled: true
 
 web3j:

@@ -22,7 +22,7 @@ public interface StakeRewardRepository extends PagingAndSortingRepository<StakeR
 
     StakeReward findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(String stakingProvider);
 
-    @Query(value = "SELECT count(1) FROM stake_reward sr where staking_provider = :stakingProvider and SUBSTR(sr.living_ratio, 1, 1) = '1' ", nativeQuery = true)
-    int countStakingProviderAllOnlineEpoch(@Param("stakingProvider") String stakingProvider);
+    @Query(value = "SELECT count(1) FROM stake_reward sr where staking_provider = :stakingProvider and SUBSTR(sr.living_ratio, 1, 1) = '1' and epoch != :currentEpoch", nativeQuery = true)
+    int countStakingProviderAllOnlineEpoch(@Param("stakingProvider") String stakingProvider, @Param("currentEpoch") String currentEpoch);
 
 }

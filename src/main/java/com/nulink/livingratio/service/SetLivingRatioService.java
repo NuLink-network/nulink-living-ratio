@@ -99,36 +99,40 @@ public class SetLivingRatioService {
             int batches = (int) Math.ceil((double) totalElements / batchSize);
             boolean finish = false;
             String txHash = "";
-            for (int i = 0; i < batches; i++) {
-                int fromIndex = i * batchSize;
-                int toIndex = Math.min((i + 1) * batchSize, totalElements);
-                finish = (i + 1) * batchSize >= totalElements;
-                List<StakeReward> batchList = stakeRewards.subList(fromIndex, toIndex);
-                if (!batchList.isEmpty()) {
-                    try {
-                        List<String> stakingProviders = batchList.stream().map(StakeReward::getStakingProvider).collect(Collectors.toList());
-                        List<String> livingRatios = batchList.stream().map(StakeReward::getLivingRatio).collect(Collectors.toList());
-                        int j = 0;
-                        do {
-                            txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios, finish);
-                            j++;
-                            try {
-                                TimeUnit.MILLISECONDS.sleep(1000);
-                            } catch (InterruptedException e) {
+            if (totalElements > 0){
+                for (int i = 0; i < batches; i++) {
+                    int fromIndex = i * batchSize;
+                    int toIndex = Math.min((i + 1) * batchSize, totalElements);
+                    finish = (i + 1) * batchSize >= totalElements;
+                    List<StakeReward> batchList = stakeRewards.subList(fromIndex, toIndex);
+                    if (!batchList.isEmpty()) {
+                        try {
+                            List<String> stakingProviders = batchList.stream().map(StakeReward::getStakingProvider).collect(Collectors.toList());
+                            List<String> livingRatios = batchList.stream().map(StakeReward::getLivingRatio).collect(Collectors.toList());
+                            int j = 0;
+                            do {
+                                txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios, finish);
+                                j++;
+                                try {
+                                    TimeUnit.MILLISECONDS.sleep(1000);
+                                } catch (InterruptedException e) {
+                                }
+                            } while (j < 20 && (null == txHash || txHash.isEmpty()));
+                            TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
+                            // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
+                            if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
+                                log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
+                                break;
                             }
-                        } while (j < 20 && (null == txHash || txHash.isEmpty()));
-                        TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
-                        // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
-                        if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
-                            log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
+
+                        } catch (IOException | InterruptedException | ExecutionException e) {
+                            log.error("==========>set living ratio failed reason: {}", e.getMessage());
                             break;
                         }
-
-                    } catch (IOException | InterruptedException | ExecutionException e) {
-                        log.error("==========>set living ratio failed reason: {}", e.getMessage());
-                        break;
                     }
                 }
+            } else {
+                finish = true;
             }
             if (finish){
                 setLivingRatio.setSetLivingRatio(true);

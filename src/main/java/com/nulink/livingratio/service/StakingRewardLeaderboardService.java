@@ -61,14 +61,14 @@ public class StakingRewardLeaderboardService {
         transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         TransactionStatus status = platformTransactionManager.getTransaction(transactionDefinition);
         try{
-            String currentEpoch = web3jUtils.getCurrentEpoch();
-            int i = stakingRewardLeaderboardRepository.countByEpoch(currentEpoch);
+            String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
+            int i = stakingRewardLeaderboardRepository.countByEpoch(previousEpoch);
             if (i > 0){
                 platformTransactionManager.commit(status);
                 StakingRewardLeaderboardService.updateLeaderboardTaskFlag = false;
                 return;
             }
-            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(currentEpoch);
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(previousEpoch);
             if (stakeRewards.isEmpty()){
                 platformTransactionManager.commit(status);
                 StakingRewardLeaderboardService.updateLeaderboardTaskFlag = false;
@@ -86,27 +86,24 @@ public class StakingRewardLeaderboardService {
 
             List<StakingRewardLeaderboard> newLeaderboards =  new ArrayList<>();
             for (StakeReward stakeReward : stakeRewards) {
-                if (StringUtils.isEmpty(stakeReward.getStakingReward())){
-                    stakeReward.setStakingReward("0");
-                }
                 StakingRewardLeaderboard stakingRewardLeaderboard = leaderboardMap.get(stakeReward.getStakingProvider());
                 if (stakingRewardLeaderboard == null){
                     StakingRewardLeaderboard srl = new StakingRewardLeaderboard();
-                    srl.setEpoch(currentEpoch);
+                    srl.setEpoch(previousEpoch);
                     srl.setStakingProvider(stakeReward.getStakingProvider());
-                    srl.setAccumulatedStakingReward(stakeReward.getStakingReward());
+                    srl.setAccumulatedStakingReward(stakeReward.getStakingReward() == null? "0" : stakeReward.getStakingReward());
                     newLeaderboards.add(srl);
                 } else {
                     String accumulatedStakingReward =  new BigDecimal(stakingRewardLeaderboard.getAccumulatedStakingReward())
-                            .add(new BigDecimal(stakeReward.getStakingReward())).toString();
+                            .add(new BigDecimal(stakeReward.getStakingReward() == null? "0" : stakeReward.getStakingReward())).toString();
                     stakingRewardLeaderboard.setAccumulatedStakingReward(accumulatedStakingReward);
-                    stakingRewardLeaderboard.setEpoch(currentEpoch);
+                    stakingRewardLeaderboard.setEpoch(previousEpoch);
                     newLeaderboards.add(stakingRewardLeaderboard);
                 }
             }
 
             Comparator<StakingRewardLeaderboard> comparator = Comparator.comparing(srl -> new BigDecimal(srl.getAccumulatedStakingReward()));
-            comparator.reversed();
+            comparator = comparator.reversed();
             newLeaderboards.sort(comparator);
             for (int j = 0; j < newLeaderboards.size(); j++) {
                 StakingRewardLeaderboard stakingRewardLeaderboard = newLeaderboards.get(j);

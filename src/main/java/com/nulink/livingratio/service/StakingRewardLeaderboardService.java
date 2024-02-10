@@ -75,41 +75,56 @@ public class StakingRewardLeaderboardService {
                 log.info("The update leaderboard task task break, stakeRewards list is empty.");
                 return;
             }
+            if (null == stakeRewards.get(0).getStakingReward()){
+                platformTransactionManager.commit(status);
+                StakingRewardLeaderboardService.updateLeaderboardTaskFlag = false;
+                log.info("Waiting for The count Previous Epoch Stake Reward task finish");
+                return;
+            }
+
+            Map<String, StakeReward> stakingRewardMap = new HashMap<>();
+
+            for (StakeReward stakeReward : stakeRewards) {
+                stakingRewardMap.put(stakeReward.getStakingProvider(), stakeReward);
+            }
 
             List<StakingRewardLeaderboard> leaderboardList = stakingRewardLeaderboardRepository.findAll();
 
-            Map<String, StakingRewardLeaderboard> leaderboardMap =  new HashMap<>();
+            Map<String, String> leaderboardMap =  new HashMap<>();
 
             for (StakingRewardLeaderboard stakingRewardLeaderboard : leaderboardList) {
-                leaderboardMap.put(stakingRewardLeaderboard.getStakingProvider(), stakingRewardLeaderboard);
+                String stakingProvider = stakingRewardLeaderboard.getStakingProvider();
+                String accumulatedStakingReward = stakingRewardLeaderboard.getAccumulatedStakingReward();
+                if (accumulatedStakingReward == null){
+                    accumulatedStakingReward = "0";
+                }
+                leaderboardMap.put(stakingProvider, accumulatedStakingReward);
+                stakingRewardLeaderboard.setEpoch(previousEpoch);
+                StakeReward stakeReward = stakingRewardMap.get(stakingProvider);
+                if (null != stakeReward){
+                    stakingRewardLeaderboard.setAccumulatedStakingReward(
+                            new BigDecimal(accumulatedStakingReward).add(new BigDecimal(stakeReward.getStakingReward() == null? "0" : stakeReward.getStakingReward())).toString());
+                }
             }
 
-            List<StakingRewardLeaderboard> newLeaderboards =  new ArrayList<>();
             for (StakeReward stakeReward : stakeRewards) {
-                StakingRewardLeaderboard stakingRewardLeaderboard = leaderboardMap.get(stakeReward.getStakingProvider());
-                if (stakingRewardLeaderboard == null){
-                    StakingRewardLeaderboard srl = new StakingRewardLeaderboard();
-                    srl.setEpoch(previousEpoch);
-                    srl.setStakingProvider(stakeReward.getStakingProvider());
-                    srl.setAccumulatedStakingReward(stakeReward.getStakingReward() == null? "0" : stakeReward.getStakingReward());
-                    newLeaderboards.add(srl);
-                } else {
-                    String accumulatedStakingReward =  new BigDecimal(stakingRewardLeaderboard.getAccumulatedStakingReward())
-                            .add(new BigDecimal(stakeReward.getStakingReward() == null? "0" : stakeReward.getStakingReward())).toString();
-                    stakingRewardLeaderboard.setAccumulatedStakingReward(accumulatedStakingReward);
+                if (!leaderboardMap.containsKey(stakeReward.getStakingProvider())){
+                    StakingRewardLeaderboard stakingRewardLeaderboard = new StakingRewardLeaderboard();
+                    stakingRewardLeaderboard.setStakingProvider(stakeReward.getStakingProvider());
                     stakingRewardLeaderboard.setEpoch(previousEpoch);
-                    newLeaderboards.add(stakingRewardLeaderboard);
+                    stakingRewardLeaderboard.setAccumulatedStakingReward(stakeReward.getStakingReward());
+                    leaderboardList.add(stakingRewardLeaderboard);
                 }
             }
 
             Comparator<StakingRewardLeaderboard> comparator = Comparator.comparing(srl -> new BigDecimal(srl.getAccumulatedStakingReward()));
             comparator = comparator.reversed();
-            newLeaderboards.sort(comparator);
-            for (int j = 0; j < newLeaderboards.size(); j++) {
-                StakingRewardLeaderboard stakingRewardLeaderboard = newLeaderboards.get(j);
+            leaderboardList.sort(comparator);
+            for (int j = 0; j < leaderboardList.size(); j++) {
+                StakingRewardLeaderboard stakingRewardLeaderboard = leaderboardList.get(j);
                 stakingRewardLeaderboard.setRanking(j + 1);
             }
-            stakingRewardLeaderboardRepository.saveAll(newLeaderboards);
+            stakingRewardLeaderboardRepository.saveAll(leaderboardList);
             platformTransactionManager.commit(status);
             StakingRewardLeaderboardService.updateLeaderboardTaskFlag = false;
             log.info("The update leaderboard task task is finish");

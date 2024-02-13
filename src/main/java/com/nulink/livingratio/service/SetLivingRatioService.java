@@ -93,6 +93,7 @@ public class SetLivingRatioService {
         if (null != setLivingRatio) {
             String epoch = setLivingRatio.getEpoch();
             List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
+            stakeRewards.removeIf(stakeReward -> new BigDecimal(stakeReward.getLivingRatio()).compareTo(BigDecimal.ZERO) == 0);
 
             int batchSize = 500;
             int totalElements = stakeRewards.size();

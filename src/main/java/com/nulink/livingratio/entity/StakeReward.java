@@ -1,16 +1,16 @@
 package com.nulink.livingratio.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "stake_reward")
-public class StakeReward extends BaseEntity{
+public class StakeReward extends BaseEntity implements Serializable {
 
     @Column(name = "staking_provider")
     private String stakingProvider;

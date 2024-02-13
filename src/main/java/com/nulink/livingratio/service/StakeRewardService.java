@@ -1,14 +1,16 @@
 package com.nulink.livingratio.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nulink.livingratio.dto.StakingRewardLeaderboardDTO;
 import com.nulink.livingratio.entity.*;
 import com.nulink.livingratio.repository.BondRepository;
-import com.nulink.livingratio.repository.SetLivingRatioRepository;
 import com.nulink.livingratio.repository.StakeRepository;
 import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.utils.HttpClientUtil;
+import com.nulink.livingratio.utils.RedisService;
 import com.nulink.livingratio.utils.Web3jUtils;
 import com.nulink.livingratio.vo.PorterRequestVO;
 import lombok.extern.log4j.Log4j2;
@@ -32,6 +34,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -69,6 +72,8 @@ public class StakeRewardService {
     private final Web3jUtils web3jUtils;
     private final IncludeUrsulaService includeUrsulaService;
 
+    private final RedisService redisService;
+
     @Resource
     private PlatformTransactionManager platformTransactionManager;
 
@@ -77,13 +82,14 @@ public class StakeRewardService {
                               StakeService stakeService,
                               BondRepository bondRepository,
                               Web3jUtils web3jUtils,
-                              IncludeUrsulaService includeUrsulaService) {
+                              IncludeUrsulaService includeUrsulaService, RedisService redisService) {
         this.stakeRewardRepository = stakeRewardRepository;
         this.stakeRepository = stakeRepository;
         this.stakeService = stakeService;
         this.bondRepository = bondRepository;
         this.web3jUtils = web3jUtils;
         this.includeUrsulaService = includeUrsulaService;
+        this.redisService = redisService;
     }
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
@@ -511,14 +517,58 @@ public class StakeRewardService {
     }
 
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum, String orderBy, String sorted){
-        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+        String stakeRewardPageKey = "stakeRewardPage_epoch_" + epoch;
+        List<StakeReward> stakeRewards = new ArrayList<>();
+        try {
+            Object redisValue = redisService.get(stakeRewardPageKey);
+            if (null != redisValue) {
+                String v = redisValue.toString();
+                stakeRewards = JSONObject.parseArray(v, StakeReward.class);
+            }
+        }catch (Exception e){
+            log.error("StakeReward find page redis read error：{}", e.getMessage());
+        }
+        if (stakeRewards.isEmpty()){
+            stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+            if (!stakeRewards.isEmpty()){
+                try {
+                    String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
+                    redisService.set(stakeRewardPageKey, pvoStr, 300, TimeUnit.SECONDS);
+                }catch (Exception e){
+                    log.error("StakeReward find page redis write error：{}", e.getMessage());
+                }
+            }
+        }
         return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
     }
 
     public Page<StakeReward> findCurrentEpochPage(int pageSize, int pageNum, String orderBy, String sorted){
         String epoch = web3jUtils.getCurrentEpoch();
-        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
-        countStakeReward(stakeRewards, epoch);
+        String currentEpochStakeReward = "currentEpochStakeReward_epoch_" + epoch;
+        List<StakeReward> stakeRewards = new ArrayList<>();
+        try {
+            Object redisValue = redisService.get(currentEpochStakeReward);
+            if (null != redisValue) {
+                String v = redisValue.toString();
+                stakeRewards = JSONObject.parseArray(v, StakeReward.class);
+            }
+        }catch (Exception e){
+            log.error("stakeReward findCurrentEpochPage redis read error：{}", e.getMessage());
+        }
+
+        if (stakeRewards.isEmpty()){
+            stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+            countStakeReward(stakeRewards, epoch);
+            if (!stakeRewards.isEmpty()){
+                try {
+                    String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
+                    redisService.set(currentEpochStakeReward, pvoStr, 30, TimeUnit.SECONDS);
+                }catch (Exception e){
+                    log.error("stakeReward findCurrentEpochPage redis write error：{}", e.getMessage());
+                }
+            }
+        }
+
         return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
     }
 

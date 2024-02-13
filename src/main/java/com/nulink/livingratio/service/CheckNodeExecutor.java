@@ -21,7 +21,7 @@ public class CheckNodeExecutor {
     private CompletionService<ServerStatus> completionService;
 
     public CheckNodeExecutor() {
-        executor = Executors.newFixedThreadPool(30);
+        executor = Executors.newFixedThreadPool(40);
         completionService = new ExecutorCompletionService<>(executor);
     }
 
@@ -111,50 +111,38 @@ public class CheckNodeExecutor {
 
             Response response;
             boolean result;
-            int i = 0;
-            do {
-                try {
-                    Request request = new Request.Builder().url(url).build();
-                    response = client.newCall(request).execute();
-                    if (response.isSuccessful()) {
-                        /*
-                            success response:
-                           {
-                                "version":"0.5.0"
-                                "data": "success"
-                            }
-                        */
-                        ObjectMapper objectMapper = new ObjectMapper();
-                        JsonNode jsonNode = null;
-                        if (response.body() != null) {
-                            jsonNode = objectMapper.readTree(response.body().string());
-                            if (jsonNode.has("data")){
-                                result = true;
-                            } else {
-                                result = false;
-                            }
+            try {
+                Request request = new Request.Builder().url(url).build();
+                response = client.newCall(request).execute();
+                if (response.isSuccessful()) {
+                    /*
+                        success response:
+                       {
+                            "version":"0.5.0"
+                            "data": "success"
+                        }
+                    */
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    JsonNode jsonNode = null;
+                    if (response.body() != null) {
+                        jsonNode = objectMapper.readTree(response.body().string());
+                        if (jsonNode.has("data")){
+                            result = true;
                         } else {
                             result = false;
                         }
                     } else {
-                        log.error(serverStatus.getServer() +" Request failed. Response code: " + response.code());
-                        log.error(serverStatus.getServer() +":" + serverStatus.getStakingProvider() + "----" + serverStatus.getServer());
                         result = false;
                     }
-                    response.close();
-                } catch (Exception e) {
-                    log.error(serverStatus.getServer() + " connect failure:" + e.getMessage());
+                } else {
+                    log.error(serverStatus.getServer() +" Request failed. Response code: " + response.code());
                     result = false;
                 }
-                if (!result){
-                    i++;
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(30000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            } while (i < 2 && !result);
+                response.close();
+            } catch (Exception e) {
+                log.error(serverStatus.getServer() + " connect failure:" + e.getMessage());
+                result = false;
+            }
             return result;
         }
     }

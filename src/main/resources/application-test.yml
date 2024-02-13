@@ -1,6 +1,12 @@
 server:
   port: 8091
 spring:
+  redis:
+    port: 6379
+    host: r-gs50uhavyclsmv5co6.redis.singapore.rds.aliyuncs.com
+    database: 2
+    connect-timeout: 5000
+    password: R#If4g+1fF2lp-3Dlfl13
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource

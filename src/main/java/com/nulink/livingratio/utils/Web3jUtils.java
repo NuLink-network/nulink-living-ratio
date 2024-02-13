@@ -3,9 +3,11 @@ package com.nulink.livingratio.utils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.alibaba.fastjson.JSONObject;
 import com.nulink.livingratio.config.ContractsConfig;
 import com.nulink.livingratio.config.ProfileConfig;
 import com.nulink.livingratio.contract.event.listener.filter.Monitor;
+import com.nulink.livingratio.entity.StakeReward;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.request.Transaction;
 import org.web3j.protocol.core.methods.response.*;
 import org.web3j.protocol.exceptions.TransactionException;
+import org.web3j.protocol.http.HttpService;
 import org.web3j.tx.TransactionManager;
 import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.tx.response.PollingTransactionReceiptProcessor;
@@ -84,6 +87,9 @@ public class Web3jUtils {
 
     @Autowired
     ContractsConfig contractsConfig;
+
+    @Autowired
+    private RedisService redisService;
 
     public Web3j getWeb3j() {
         return web3j;
@@ -439,6 +445,17 @@ public class Web3jUtils {
     }
 
     public String getCurrentEpoch() {
+        String currentEpochCacheKey = "staking_service_currentEpoch";
+        String currentEpoch = "";
+        try {
+            Object redisValue = redisService.get(currentEpochCacheKey);
+            if (null != redisValue) {
+                currentEpoch = redisValue.toString();
+                return currentEpoch;
+            }
+        }catch (Exception e){
+            log.error("getCurrentEpoch redis read error：{}", e.getMessage());
+        }
         List<Type> inputParameters = new ArrayList<>();
         List<TypeReference<?>> outputParameters = new ArrayList<>();
         outputParameters.add(new TypeReference<Uint16>() {});
@@ -448,7 +465,9 @@ public class Web3jUtils {
 
         try {
             List<Type> returnList = callContractFunction(function, eventReferralRewardCI.getAddress());
-            return returnList.get(0).getValue().toString();
+            currentEpoch = returnList.get(0).getValue().toString();
+            redisService.set(currentEpochCacheKey, currentEpoch, 1, TimeUnit.SECONDS);
+            return currentEpoch;
         } catch (ExecutionException e) {
             // throw new RuntimeException(e);
             log.error("call getCurrentEpoch ExecutionException: {}", e);
@@ -460,6 +479,15 @@ public class Web3jUtils {
     }
 
     public String getEpochReward(String epoch) {
+        String epochRewardKey = "epoch_reward_key_" + epoch;
+        try {
+            Object redisValue = redisService.get(epochRewardKey);
+            if (null != redisValue) {
+                return redisValue.toString();
+            }
+        }catch (Exception e){
+            log.error("getEpochReward redis read error：{}", e.getMessage());
+        }
         List<Type> inputParameters = new ArrayList<>();
         inputParameters.add(new Uint16(Long.valueOf(epoch)));
         List<TypeReference<?>> outputParameters = new ArrayList<>();
@@ -470,7 +498,9 @@ public class Web3jUtils {
 
         try {
             List<Type> returnList = callContractFunction(function, eventReferralRewardCI.getAddress());
-            return returnList.get(0).getValue().toString();
+            String epochReward = returnList.get(0).getValue().toString();
+            redisService.set(epochRewardKey, epochReward, 30, TimeUnit.SECONDS);
+            return epochReward;
         } catch (ExecutionException e) {
             // throw new RuntimeException(e);
             log.error("call getEpochReward ExecutionException: {}", e);

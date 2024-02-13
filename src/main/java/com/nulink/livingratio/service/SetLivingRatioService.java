@@ -89,58 +89,67 @@ public class SetLivingRatioService {
             SetLivingRatioService.lockSetLivingRatioTaskFlag = true;
         }
 
-        SetLivingRatio setLivingRatio = setLivingRatioRepository.findFirstBySetLivingRatioOrderByCreateTime(false);
-        if (null != setLivingRatio) {
-            String epoch = setLivingRatio.getEpoch();
-            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
-            stakeRewards.removeIf(stakeReward -> new BigDecimal(stakeReward.getLivingRatio()).compareTo(BigDecimal.ZERO) == 0);
+        try {
+            SetLivingRatio setLivingRatio = setLivingRatioRepository.findFirstBySetLivingRatioOrderByCreateTime(false);
+            if (null != setLivingRatio) {
+                String epoch = setLivingRatio.getEpoch();
+                List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
+                stakeRewards.removeIf(stakeReward -> new BigDecimal(stakeReward.getLivingRatio()).compareTo(BigDecimal.ZERO) == 0);
 
-            int batchSize = 500;
-            int totalElements = stakeRewards.size();
-            int batches = (int) Math.ceil((double) totalElements / batchSize);
-            boolean finish = false;
-            String txHash = "";
-            if (totalElements > 0){
-                for (int i = 0; i < batches; i++) {
-                    int fromIndex = i * batchSize;
-                    int toIndex = Math.min((i + 1) * batchSize, totalElements);
-                    finish = (i + 1) * batchSize >= totalElements;
-                    List<StakeReward> batchList = stakeRewards.subList(fromIndex, toIndex);
-                    if (!batchList.isEmpty()) {
-                        try {
-                            List<String> stakingProviders = batchList.stream().map(StakeReward::getStakingProvider).collect(Collectors.toList());
-                            List<String> livingRatios = batchList.stream().map(StakeReward::getLivingRatio).collect(Collectors.toList());
-                            int j = 0;
-                            do {
-                                txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios, finish);
-                                j++;
-                                try {
-                                    TimeUnit.MILLISECONDS.sleep(1000);
-                                } catch (InterruptedException e) {
+                int batchSize = 500;
+                int totalElements = stakeRewards.size();
+                int batches = (int) Math.ceil((double) totalElements / batchSize);
+                boolean finish = false;
+                String txHash = "";
+                if (totalElements > 0){
+                    for (int i = 0; i < batches; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, totalElements);
+                        finish = (i + 1) * batchSize >= totalElements;
+                        List<StakeReward> batchList = stakeRewards.subList(fromIndex, toIndex);
+                        if (!batchList.isEmpty()) {
+                            try {
+                                List<String> stakingProviders = batchList.stream().map(StakeReward::getStakingProvider).collect(Collectors.toList());
+                                List<String> livingRatios = batchList.stream().map(StakeReward::getLivingRatio).collect(Collectors.toList());
+                                int j = 0;
+                                do {
+                                    txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios, finish);
+                                    j++;
+                                    try {
+                                        TimeUnit.MILLISECONDS.sleep(1000);
+                                    } catch (InterruptedException e) {
+                                        SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
+                                        return;
+                                    }
+                                } while (j < 20 && (null == txHash || txHash.isEmpty()));
+                                TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
+                                // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
+                                if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
+                                    log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
+                                    SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
+                                    return;
                                 }
-                            } while (j < 20 && (null == txHash || txHash.isEmpty()));
-                            TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
-                            // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
-                            if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
-                                log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
-                                break;
-                            }
 
-                        } catch (IOException | InterruptedException | ExecutionException e) {
-                            log.error("==========>set living ratio failed reason: {}", e.getMessage());
-                            break;
+                            } catch (IOException | InterruptedException | ExecutionException e) {
+                                log.error("==========>set living ratio failed reason: {}", e.getMessage());
+                                SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
+                                return;
+                            }
                         }
                     }
+                } else {
+                    finish = true;
                 }
-            } else {
-                finish = true;
+                if (finish){
+                    setLivingRatio.setSetLivingRatio(true);
+                    setLivingRatio.setTxHash(txHash);
+                    setLivingRatioRepository.save(setLivingRatio);
+                }
             }
-            if (finish){
-                setLivingRatio.setSetLivingRatio(true);
-                setLivingRatio.setTxHash(txHash);
-                setLivingRatioRepository.save(setLivingRatio);
-            }
+        }catch (Exception e){
+            log.error("==========>setLivingRatio Task failed reason:", e);
+        }finally {
+            SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
         }
-        SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
     }
 }

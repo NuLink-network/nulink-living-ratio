@@ -20,10 +20,10 @@ public interface StakeRepository extends PagingAndSortingRepository<Stake, Long>
                     "	s.* \n" +
                     "FROM\n" +
                     "	stake s,\n" +
-                    "	( SELECT max( create_time ) create_time, USER FROM stake WHERE create_time <= :epochStartTime GROUP BY USER ) t \n" +
+                    "	( SELECT max( id ) id, USER FROM stake WHERE create_time <= :epochStartTime GROUP BY USER ) t \n" +
                     "WHERE\n" +
                     "	s.USER = t.USER \n" +
-                    "	AND s.create_time = t.create_time \n" +
+                    "	AND s.id = t.id \n" +
                     "	AND s.`event` = 'stake'", nativeQuery = true)
     List<Stake> findValidStakeByEpoch(@Param("epochStartTime") Timestamp epochStartTime);
 

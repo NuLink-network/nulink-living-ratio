@@ -179,7 +179,6 @@ public class StakeRewardService {
     @Async
     @Scheduled(cron = "0 0 * * * ?")
     //@Scheduled(cron = "0 0/5 * * * ? ")
-    @Transactional
     public void livingRatio() {
         synchronized (livingRatioTaskKey) {
             if (StakeRewardService.livingRatioTaskFlag) {

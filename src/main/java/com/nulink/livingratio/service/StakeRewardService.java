@@ -28,7 +28,6 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.annotation.Resource;
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -74,6 +73,8 @@ public class StakeRewardService {
 
     private final RedisService redisService;
 
+    private final ValidStakingAmountService validStakingAmountService;
+
     @Resource
     private PlatformTransactionManager platformTransactionManager;
 
@@ -82,7 +83,8 @@ public class StakeRewardService {
                               StakeService stakeService,
                               BondRepository bondRepository,
                               Web3jUtils web3jUtils,
-                              IncludeUrsulaService includeUrsulaService, RedisService redisService) {
+                              IncludeUrsulaService includeUrsulaService, RedisService redisService,
+                              ValidStakingAmountService validStakingAmountService) {
         this.stakeRewardRepository = stakeRewardRepository;
         this.stakeRepository = stakeRepository;
         this.stakeService = stakeService;
@@ -90,6 +92,7 @@ public class StakeRewardService {
         this.web3jUtils = web3jUtils;
         this.includeUrsulaService = includeUrsulaService;
         this.redisService = redisService;
+        this.validStakingAmountService = validStakingAmountService;
     }
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
@@ -112,7 +115,6 @@ public class StakeRewardService {
 
         try{
             String currentEpoch = web3jUtils.getCurrentEpoch();
-            String currentEpochStartTime = web3jUtils.getEpochStartTime(currentEpoch);
             if (Integer.valueOf(currentEpoch) < 1){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
                 platformTransactionManager.commit(status);
@@ -141,6 +143,8 @@ public class StakeRewardService {
 
             List<StakeReward> stakeRewards = new ArrayList<>();
 
+            Map<String, String> validStakingAmount = validStakingAmountService.findValidStakingAmount(Integer.parseInt(currentEpoch) - 1);
+
             validStake.forEach(stake -> {
                 StakeReward stakeReward = new StakeReward();
                 stakeReward.setEpoch(currentEpoch);
@@ -153,11 +157,12 @@ public class StakeRewardService {
                     }
                 }
                 stakeReward.setStakingProvider(stakeUser);
-                stakeReward.setStakingAmount(getStakingAmount(stakeUser, currentEpochStartTime));
+                stakeReward.setStakingAmount(validStakingAmount.get(stakeUser) == null?"0":validStakingAmount.get(stakeUser));
                 stakeReward.setValidStakingAmount("0");
                 stakeReward.setLivingRatio("0");
                 stakeRewards.add(stakeReward);
             });
+            stakeRewards.removeIf(stakeReward -> stakeReward.getStakingAmount().equals("0"));
             stakeRewardRepository.saveAll(stakeRewards);
             platformTransactionManager.commit(status);
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;

@@ -1,6 +1,5 @@
 package com.nulink.livingratio.controller;
 
-import com.nulink.livingratio.dto.StakingRewardLeaderboardDTO;
 import com.nulink.livingratio.entity.StakeReward;
 import com.nulink.livingratio.service.StakeRewardService;
 import com.nulink.livingratio.utils.Web3jUtils;

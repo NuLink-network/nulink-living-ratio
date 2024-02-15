@@ -46,4 +46,6 @@ public interface StakeRepository extends PagingAndSortingRepository<Stake, Long>
     List<Stake> findAllByUser(String user);
 
     List<Stake> findAll();
+
+    List<Stake> findAllByEpochOrderByCreateTime(String epoch);
 }

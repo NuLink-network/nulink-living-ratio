@@ -17,9 +17,13 @@ public class StakeService {
     private final Web3jUtils web3jUtils;
     private final StakeRepository stakeRepository;
 
-    public StakeService(Web3jUtils web3jUtils, StakeRepository stakeRepository) {
+    private final ValidStakingAmountService validStakingAmountService;
+
+    public StakeService(Web3jUtils web3jUtils, StakeRepository stakeRepository,
+                        ValidStakingAmountService validStakingAmountService) {
         this.web3jUtils = web3jUtils;
         this.stakeRepository = stakeRepository;
+        this.validStakingAmountService = validStakingAmountService;
     }
 
     @Transactional
@@ -28,6 +32,7 @@ public class StakeService {
         if (null != s){
             return;
         }
+        validStakingAmountService.updateValidStakingAmount(stake);
         stakeRepository.save(stake);
     }
 

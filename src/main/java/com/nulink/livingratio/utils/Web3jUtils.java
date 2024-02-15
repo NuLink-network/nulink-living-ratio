@@ -261,10 +261,10 @@ public class Web3jUtils {
             if (null == credentials) {
                 throw new RuntimeException("sendTransaction can't find keystore credentials");
             }
-
+            Web3j web3j1 = Web3j.build(new HttpService("https://data-seed-prebsc-2-s2.bnbchain.org:8545"));
             String fromAddress = credentials.getAddress();
             try {
-                EthGetTransactionCount ethGetTransactionCount = web3j.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();
+                EthGetTransactionCount ethGetTransactionCount = web3j1.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();
                 BigInteger nonce = ethGetTransactionCount.getTransactionCount();
 
                 Transaction transaction = Transaction.createFunctionCallTransaction(
@@ -278,15 +278,15 @@ public class Web3jUtils {
 
                 BigInteger transactionGasLimit = getTransactionGasLimit(transaction);
 
-                BigInteger ethGasPrice = getGasPrice();
+                BigInteger ethGasPrice = getGasPrice().multiply(new BigInteger("20")).divide(new BigInteger("10"));
 
                 //RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
-                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit.multiply(new BigInteger("2")), contractAddress, encodedFunction);
+                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit, contractAddress, encodedFunction);
 
                 byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);
 
-                EthSendTransaction ethSendTransaction = web3j.ethSendRawTransaction(hexValue).send();
+                EthSendTransaction ethSendTransaction = web3j1.ethSendRawTransaction(hexValue).send();
                 log.info("sendTransaction txHash: {}", ethSendTransaction.getTransactionHash());
                 if (ethSendTransaction.hasError()) {
                     log.error("sendTransaction Error:" + ethSendTransaction.getError().getMessage());

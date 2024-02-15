@@ -150,11 +150,6 @@ public class StakeRewardService {
                     String url = nodeAddresses.get(stakingAddress.indexOf(stakeUser));
                     if (StringUtils.isNotEmpty(url)){
                         stakeReward.setIpAddress(getIpAddress(url));
-                    } else {
-                        StakeReward s = stakeRewardRepository.findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(stakeUser);
-                        if (null != s){
-                            stakeReward.setIpAddress(s.getIpAddress());
-                        }
                     }
                 }
                 stakeReward.setStakingProvider(stakeUser);
@@ -487,10 +482,10 @@ public class StakeRewardService {
                     throw new RuntimeException(e);
                 }
             } else {
-                StakeReward s = stakeRewardRepository.findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(stakingProvider);
+                /*StakeReward s = stakeRewardRepository.findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(stakingProvider);
                 if (null != s){
                     stakeReward.setIpAddress(s.getIpAddress());
-                }
+                }*/
                 stakeReward.setOnline(false);
             }
         } else {

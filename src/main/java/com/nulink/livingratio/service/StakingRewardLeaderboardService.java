@@ -1,12 +1,12 @@
 package com.nulink.livingratio.service;
 
+import com.nulink.livingratio.entity.LeaderboardBlacklist;
 import com.nulink.livingratio.entity.StakeReward;
 import com.nulink.livingratio.entity.StakingRewardLeaderboard;
 import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.repository.StakingRewardLeaderboardRepository;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,9 +20,9 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Log4j2
 @Service
@@ -30,15 +30,18 @@ public class StakingRewardLeaderboardService {
 
     private final StakingRewardLeaderboardRepository stakingRewardLeaderboardRepository;
     private final StakeRewardRepository stakeRewardRepository;
+
+    private final LeaderboardBlacklistService leaderboardBlacklistService;
     private final Web3jUtils web3jUtils;
     @Autowired
     private PlatformTransactionManager platformTransactionManager;
 
     public StakingRewardLeaderboardService(StakingRewardLeaderboardRepository stakingRewardLeaderboardRepository,
                                            StakeRewardRepository stakeRewardRepository,
-                                           Web3jUtils web3jUtils) {
+                                           LeaderboardBlacklistService leaderboardBlacklistService, Web3jUtils web3jUtils) {
         this.stakingRewardLeaderboardRepository = stakingRewardLeaderboardRepository;
         this.stakeRewardRepository = stakeRewardRepository;
+        this.leaderboardBlacklistService = leaderboardBlacklistService;
         this.web3jUtils = web3jUtils;
     }
 
@@ -88,7 +91,13 @@ public class StakingRewardLeaderboardService {
                 stakingRewardMap.put(stakeReward.getStakingProvider(), stakeReward);
             }
 
+            List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll();
+            Set<String> set = blacklists.stream().map(LeaderboardBlacklist::getStakingProvider).collect(Collectors.toSet());
+
             List<StakingRewardLeaderboard> leaderboardList = stakingRewardLeaderboardRepository.findAll();
+
+            leaderboardList.removeIf(stakingRewardLeaderboard -> set.contains(stakingRewardLeaderboard.getStakingProvider().toLowerCase()));
+            stakeRewards.removeIf(stakeReward -> set.contains(stakeReward.getStakingProvider().toUpperCase().toLowerCase()));
 
             Map<String, String> leaderboardMap =  new HashMap<>();
 

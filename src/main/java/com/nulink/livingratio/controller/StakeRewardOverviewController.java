@@ -7,11 +7,13 @@ import com.nulink.livingratio.utils.Web3jUtils;
 import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.*;
 
 @Api(tags = "Stake Reward Overview")
 @RestController
 @RequestMapping("stakeRewardOverview")
+@ConditionalOnProperty(value = "controller.enabled", havingValue = "true")
 public class StakeRewardOverviewController {
 
     private final StakeRewardOverviewService stakeRewardOverviewService;

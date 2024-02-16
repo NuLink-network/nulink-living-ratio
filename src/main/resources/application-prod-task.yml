@@ -1,5 +1,5 @@
 controller:
-  enabled: true
+  enabled: false
 scheduling:
   enabled: true
 

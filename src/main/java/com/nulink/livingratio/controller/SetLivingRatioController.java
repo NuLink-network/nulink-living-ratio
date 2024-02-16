@@ -5,6 +5,7 @@ import com.nulink.livingratio.service.SetLivingRatioService;
 import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import java.util.List;
 @Api(tags = "Living Ratio")
 @RestController
 @RequestMapping("SetLivingRatio")
+@ConditionalOnProperty(value = "controller.enabled", havingValue = "true")
 public class SetLivingRatioController {
 
     private final SetLivingRatioService setLivingRatioService;

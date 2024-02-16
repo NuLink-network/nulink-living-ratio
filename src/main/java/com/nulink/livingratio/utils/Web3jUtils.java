@@ -60,6 +60,14 @@ public class Web3jUtils {
     private static String TEST_PROFILE = "test";
     private static String PROD_PROFILE = "prod";
 
+    private static String DEV_API_PROFILE = "dev-api";
+    private static String TEST_API_PROFILE = "test-api";
+    private static String PROD_API_PROFILE = "prod-api";
+
+    private static String DEV_TASK_PROFILE = "dev-task";
+    private static String TEST_TASK_PROFILE = "test-task";
+    private static String PROD_TASK_PROFILE = "prod-task";
+
     public static Logger logger = LoggerFactory.getLogger(Web3jUtils.class);
 
     /**
@@ -109,11 +117,11 @@ public class Web3jUtils {
 
         log.info("The current runtime environment：" + activeProfile);
 
-        if (activeProfile.equals(TEST_PROFILE)){
+        if (activeProfile.equals(TEST_PROFILE) || activeProfile.equals(TEST_API_PROFILE) || activeProfile.equals(TEST_TASK_PROFILE)){
             keystorePath = "keystore/keystore_test";
-        } else if (activeProfile.equals(DEV_PROFILE)) {
+        } else if (activeProfile.equals(DEV_PROFILE) || activeProfile.equals(DEV_API_PROFILE) || activeProfile.equals(DEV_TASK_PROFILE)) {
             keystorePath = "keystore/keystore_dev";
-        } else if(activeProfile.equals(PROD_PROFILE)) {
+        } else if(activeProfile.equals(PROD_PROFILE) || activeProfile.equals(PROD_API_PROFILE) || activeProfile.equals(PROD_TASK_PROFILE)) {
             keystorePath = "keystore/keystore";
         }
 

@@ -6,6 +6,7 @@ import com.nulink.livingratio.utils.Web3jUtils;
 import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @Api(tags = "Stake Reward")
 @RestController
 @RequestMapping("stakeReward")
+@ConditionalOnProperty(value = "controller.enabled", havingValue = "true")
 public class StakeRewardController {
 
     private final StakeRewardService stakeRewardService;
@@ -23,6 +25,12 @@ public class StakeRewardController {
     public StakeRewardController(StakeRewardService stakeRewardService, Web3jUtils web3jUtils) {
         this.stakeRewardService = stakeRewardService;
         this.web3jUtils = web3jUtils;
+    }
+
+    @ApiOperation(value = "ping")
+    @RequestMapping(value = "/ping", method = RequestMethod.GET)
+    public BaseResponse ping() {
+        return BaseResponse.success("pong");
     }
 
     @ApiOperation("node info")

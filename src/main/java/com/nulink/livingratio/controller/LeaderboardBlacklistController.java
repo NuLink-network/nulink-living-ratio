@@ -5,12 +5,14 @@ import com.nulink.livingratio.entity.LeaderboardBlacklist;
 import com.nulink.livingratio.service.LeaderboardBlacklistService;
 import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @Api(tags = "Leaderboard Blacklist")
 @RestController
 @RequestMapping("leaderboardBlacklist")
+@ConditionalOnProperty(value = "controller.enabled", havingValue = "true")
 public class LeaderboardBlacklistController {
 
     private final LeaderboardBlacklistService leaderboardBlacklistService;

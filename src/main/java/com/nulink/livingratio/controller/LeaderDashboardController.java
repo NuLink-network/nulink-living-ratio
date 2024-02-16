@@ -5,12 +5,14 @@ import com.nulink.livingratio.service.StakingRewardLeaderboardService;
 import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @Api(tags = "Leader Dashboard")
 @RestController
 @RequestMapping("leaderDashboard")
+@ConditionalOnProperty(value = "controller.enabled", havingValue = "true")
 public class LeaderDashboardController {
 
     private final StakingRewardLeaderboardService stakingRewardLeaderboardService;

@@ -184,15 +184,51 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>dev-api</id>
+			<properties>
+				<environment>dev-api</environment>
+			</properties>
+		</profile>
+		<profile>
+			<id>dev-task</id>
+			<properties>
+				<environment>dev-task</environment>
+			</properties>
+		</profile>
+		<profile>
 			<id>test</id>
 			<properties>
 				<environment>test</environment>
 			</properties>
 		</profile>
 		<profile>
+			<id>test-api</id>
+			<properties>
+				<environment>test-api</environment>
+			</properties>
+		</profile>
+		<profile>
+			<id>test-task</id>
+			<properties>
+				<environment>test-task</environment>
+			</properties>
+		</profile>
+		<profile>
 			<id>prod</id>
 			<properties>
 				<environment>prod</environment>
+			</properties>
+		</profile>
+		<profile>
+			<id>prod-api</id>
+			<properties>
+				<environment>prod-api</environment>
+			</properties>
+		</profile>
+		<profile>
+			<id>prod-task</id>
+			<properties>
+				<environment>prod-task</environment>
 			</properties>
 		</profile>
 	</profiles>

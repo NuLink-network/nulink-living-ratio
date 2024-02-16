@@ -1,19 +1,20 @@
 controller:
-  enabled: true
+  enabled: false
 scheduling:
   enabled: true
 
 server:
-  port: 8091
+  port: 8092
 spring:
-  data:
-    redis:
-      repositories:
-        enabled: false
+  redis:
+    port: 6379
+    host: localhost
+    database: 2
+    connect-timeout: 5000
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://localhost:3306/nulink_living_ratio?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://127.0.0.1:3306/staking?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: 123456
     hikari:
@@ -22,20 +23,12 @@ spring:
       maximum-pool-size: 100
       auto-commit: true
       pool-name: XCarHikariCP
-      max-lifetime: 28770000
-      connection-timeout: 30000
+      max-lifetime: 3600000
+      connection-timeout: 60000
       connection-test-query: SELECT 1
       transaction:
         rollback-on-commit-failure: true
-
-  cache:
-    type: redis
-    redis:
-      cache-null-values: true
-      time-to-live: 60000
-  redis:
-    port: 6379
-    host: 127.0.0.1
+      leak-detection-threshold: 3500000
 
   jpa:
     hibernate:
@@ -44,35 +37,41 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: false
 
 contracts:
-  start: 36115237
+  start: 36261400
   step: 500
   enabled: true
   contractList:
     -
       name: 'StakingManager'
-      address: '0x48A126A769bCb3d6aBa4B0C4E127a45075a37511'
+      address: '0x08e64D68959147097DEC69F14f616185194E081F'
       enabled: true
     -
       name: 'NuLinkStakingPool'
-      address: '0xA3C0323E421cC64e64d5eF50e2C5587A6461Be53'
+      address: '0xE0Ae95b1ce3554358BaFb6ec0abeD89fc4235209'
       enabled: true
     -
       name: 'NuLinkStakingSetting'
-      address: '0x13cd891De2c924e2DFa08533Af2FF83bEd5B0077'
+      address: '0x8f7F7d0e6300Fce1dd24D0c50292e48f2bB4c2Ad'
       enabled: true
     -
       name: 'NLKFaucet'
-      address: '0x4bB24Ab269B02FBe34BD8eae5B4b406F53E8FF44'
+      address: '0x60E7980DbA8d4cBaA0C4079801B770cf91311701'
       enabled: true
 
 web3j:
-  client-address: https://interrpc.abeychain.com
+  client-address: https://rpc.ankr.com/bsc_testnet_chapel/1efbffd5898c6a7f6c352cb46bbee1b70535f3f68a6f00594e123a5b30a99daf
   admin-client: true # to manage accounts, enable the admin client
   httpTimeoutSeconds: 35
 
+knife4j:
+  enable: true
+  setting:
+    language: en-US
+
 NULink:
-  porter-service-url: http://8.222.146.98:9165
+  porter-service-url: http://8.219.11.39:9165
   password: xxxxxx
   chainId: 97

@@ -1,3 +1,8 @@
+controller:
+  enabled: true
+scheduling:
+  enabled: true
+
 server:
   port: 8091
 spring:

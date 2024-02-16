@@ -1,7 +1,7 @@
 controller:
   enabled: true
 scheduling:
-  enabled: true
+  enabled: false
 
 server:
   port: 8091

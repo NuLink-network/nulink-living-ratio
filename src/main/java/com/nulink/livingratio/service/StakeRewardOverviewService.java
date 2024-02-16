@@ -1,13 +1,16 @@
 package com.nulink.livingratio.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.nulink.livingratio.entity.StakeReward;
 import com.nulink.livingratio.entity.StakeRewardOverview;
 import com.nulink.livingratio.repository.StakeRewardOverviewRepository;
 import com.nulink.livingratio.repository.StakeRewardRepository;
+import com.nulink.livingratio.utils.RedisService;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -28,12 +32,15 @@ public class StakeRewardOverviewService {
     private final StakeRewardRepository stakeRewardRepository;
     private final Web3jUtils web3jUtils;
 
+    private final RedisService redisService;
+
     public StakeRewardOverviewService(StakeRewardOverviewRepository stakeRewardOverviewRepository,
                                       StakeRewardRepository stakeRewardRepository,
-                                      Web3jUtils web3jUtils) {
+                                      Web3jUtils web3jUtils, RedisService redisService) {
         this.stakeRewardOverviewRepository = stakeRewardOverviewRepository;
         this.stakeRewardRepository = stakeRewardRepository;
         this.web3jUtils = web3jUtils;
+        this.redisService = redisService;
     }
 
     @Async
@@ -83,24 +90,60 @@ public class StakeRewardOverviewService {
 
     //@Cacheable(cacheNames = "StakeRewardOverview", key = "#epoch")
     public StakeRewardOverview findEpoch(String epoch){
-        return stakeRewardOverviewRepository.findByEpoch(epoch);
+        String stakeRewardOverviewFindEpoch = "StakeRewardOverview_lastEpoch_" + epoch;
+        try {
+            Object redisValue = redisService.get(stakeRewardOverviewFindEpoch);
+            if (null != redisValue) {
+                String v = redisValue.toString();
+                return JSONObject.parseObject(v, StakeRewardOverview.class);
+            }
+        }catch (Exception e){
+            log.error("StakeRewardOverview findLastEpoch redis read error：{}", e.getMessage());
+        }
+        StakeRewardOverview rewardOverview = stakeRewardOverviewRepository.findByEpoch(epoch);
+        if (null != rewardOverview){
+            try {
+                String pvoStr = JSON.toJSONString(rewardOverview, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 30, TimeUnit.SECONDS);
+            }catch (Exception e){
+                log.error("StakeRewardOverview findLastEpoch redis write error：{}", e.getMessage());
+            }
+        }
+        return rewardOverview;
     }
 
     public StakeRewardOverview findCurrentEpoch(){
         String epoch = web3jUtils.getCurrentEpoch();
+        String stakeRewardOverviewCurrentEpoch = "StakeRewardOverview_currentEpoch_" + epoch;
+        StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
+        try {
+            Object redisValue = redisService.get(stakeRewardOverviewCurrentEpoch);
+            if (null != redisValue) {
+                String v = redisValue.toString();
+                stakeRewardOverview = JSONObject.parseObject(v, StakeRewardOverview.class);
+                return stakeRewardOverview;
+            }
+        }catch (Exception e){
+            log.error("StakeRewardOverview findCurrentEpoch redis read error：{}", e.getMessage());
+        }
         List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
         if (!stakeRewards.isEmpty()){
-            return getStakeRewardOverview(stakeRewards, epoch);
+            stakeRewardOverview = getStakeRewardOverview(stakeRewards, epoch);
         } else {
-            StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
             List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(epoch));
             List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
             String sum = sum(reward);
             sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(epoch))).toString();
             stakeRewardOverview.setAccumulatedReward(sum);
             stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(epoch));
-            return stakeRewardOverview;
         }
+        try {
+            String pvoStr = JSON.toJSONString(stakeRewardOverview, SerializerFeature.WriteNullStringAsEmpty);
+            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 30, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.error("StakeRewardOverview findCurrentEpoch redis write error：{}", e.getMessage());
+        }
+        return stakeRewardOverview;
     }
 
     private String sum(List<String> amount){

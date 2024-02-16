@@ -92,12 +92,20 @@ public class StakingRewardLeaderboardService {
             }
 
             List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll();
-            Set<String> set = blacklists.stream().map(LeaderboardBlacklist::getStakingProvider).collect(Collectors.toSet());
+            Set<String> set = blacklists.stream().map(leaderboardBlacklist ->
+                leaderboardBlacklist.getStakingProvider().toLowerCase()
+            ).collect(Collectors.toSet());
 
             List<StakingRewardLeaderboard> leaderboardList = stakingRewardLeaderboardRepository.findAll();
 
+            for (StakingRewardLeaderboard stakingRewardLeaderboard : leaderboardList) {
+                if (set.contains(stakingRewardLeaderboard.getStakingProvider())){
+                    stakingRewardLeaderboardRepository.delete(stakingRewardLeaderboard);
+                }
+            }
+
             leaderboardList.removeIf(stakingRewardLeaderboard -> set.contains(stakingRewardLeaderboard.getStakingProvider().toLowerCase()));
-            stakeRewards.removeIf(stakeReward -> set.contains(stakeReward.getStakingProvider().toUpperCase().toLowerCase()));
+            stakeRewards.removeIf(stakeReward -> set.contains(stakeReward.getStakingProvider().toLowerCase()));
 
             Map<String, String> leaderboardMap =  new HashMap<>();
 

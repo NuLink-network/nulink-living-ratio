@@ -104,7 +104,7 @@ public class StakeRewardOverviewService {
         if (null != rewardOverview){
             try {
                 String pvoStr = JSON.toJSONString(rewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 30, TimeUnit.SECONDS);
+                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 300, TimeUnit.SECONDS);
             }catch (Exception e){
                 log.error("StakeRewardOverview findLastEpoch redis write error：{}", e.getMessage());
             }
@@ -139,7 +139,7 @@ public class StakeRewardOverviewService {
         }
         try {
             String pvoStr = JSON.toJSONString(stakeRewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 30, TimeUnit.SECONDS);
+            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 60, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("StakeRewardOverview findCurrentEpoch redis write error：{}", e.getMessage());
         }

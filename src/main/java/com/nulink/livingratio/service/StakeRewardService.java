@@ -561,7 +561,7 @@ public class StakeRewardService {
             if (!stakeRewards.isEmpty()){
                 try {
                     String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
-                    redisService.set(currentEpochStakeReward, pvoStr, 60, TimeUnit.SECONDS);
+                    redisService.set(currentEpochStakeReward, pvoStr, 180, TimeUnit.SECONDS);
                 }catch (Exception e){
                     log.error("stakeReward findCurrentEpochPage redis write error：{}", e.getMessage());
                 }

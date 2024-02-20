@@ -474,7 +474,7 @@ public class Web3jUtils {
         try {
             List<Type> returnList = callContractFunction(function, eventReferralRewardCI.getAddress());
             currentEpoch = returnList.get(0).getValue().toString();
-            redisService.set(currentEpochCacheKey, currentEpoch, 1, TimeUnit.SECONDS);
+            redisService.set(currentEpochCacheKey, currentEpoch, 30, TimeUnit.SECONDS);
             return currentEpoch;
         } catch (ExecutionException e) {
             // throw new RuntimeException(e);

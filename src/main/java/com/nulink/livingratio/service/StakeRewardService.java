@@ -516,7 +516,7 @@ public class StakeRewardService {
     }
 
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum, String orderBy, String sorted){
-        String stakeRewardPageKey = "stakeRewardPage_epoch_" + epoch;
+        String stakeRewardPageKey = "stakeRewardPage:epoch:" + epoch;
         List<StakeReward> stakeRewards = new ArrayList<>();
         try {
             Object redisValue = redisService.get(stakeRewardPageKey);
@@ -528,7 +528,7 @@ public class StakeRewardService {
             log.error("StakeReward find page redis read error：{}", e.getMessage());
         }
         if (stakeRewards.isEmpty()){
-            stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+            stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
             if (!stakeRewards.isEmpty()){
                 try {
                     String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
@@ -543,7 +543,7 @@ public class StakeRewardService {
 
     public Page<StakeReward> findCurrentEpochPage(int pageSize, int pageNum, String orderBy, String sorted){
         String epoch = web3jUtils.getCurrentEpoch();
-        String currentEpochStakeReward = "currentEpochStakeReward_epoch_" + epoch;
+        String currentEpochStakeReward = "currentEpochStakeReward:epoch:" + epoch;
         List<StakeReward> stakeRewards = new ArrayList<>();
         try {
             Object redisValue = redisService.get(currentEpochStakeReward);
@@ -556,7 +556,7 @@ public class StakeRewardService {
         }
 
         if (stakeRewards.isEmpty()){
-            stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+            stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
             countStakeReward(stakeRewards, epoch);
             if (!stakeRewards.isEmpty()){
                 try {

@@ -116,7 +116,7 @@ public class SetLivingRatioService {
                                     txHash = web3jUtils.setLiveRatio(epoch, stakingProviders, livingRatios, finish);
                                     j++;
                                     try {
-                                        TimeUnit.MILLISECONDS.sleep(1000);
+                                        TimeUnit.MILLISECONDS.sleep(10000);
                                     } catch (InterruptedException e) {
                                         SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
                                         return;

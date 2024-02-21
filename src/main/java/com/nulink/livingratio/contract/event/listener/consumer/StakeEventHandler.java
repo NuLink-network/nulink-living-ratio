@@ -52,7 +52,7 @@ public class StakeEventHandler {
         if (!CollectionUtils.isEmpty(args)) {
             Stake stake = new Stake();
             String transactionHash = evLog.getTransactionHash();
-            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
             stake.setTxHash(transactionHash);
             stake.setEvent(STAKE_EVENT);
             stake.setUser(args.get(0).getValue().toString());
@@ -77,7 +77,7 @@ public class StakeEventHandler {
         if (!CollectionUtils.isEmpty(args)) {
             Stake stake = new Stake();
             String transactionHash = evLog.getTransactionHash();
-            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
             stake.setTxHash(transactionHash);
             stake.setEvent(UN_STAKE_EVENT);
             stake.setUser(args.get(0).getValue().toString());
@@ -102,7 +102,7 @@ public class StakeEventHandler {
         if (!CollectionUtils.isEmpty(args)) {
             Claim claim = new Claim();
             String transactionHash = evLog.getTransactionHash();
-            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
             claim.setTxHash(transactionHash);
             claim.setUser(args.get(0).getValue().toString());
             claim.setAmount(args.get(1).getValue().toString());
@@ -126,7 +126,7 @@ public class StakeEventHandler {
         if (!CollectionUtils.isEmpty(args)) {
             ClaimReward claimReward = new ClaimReward();
             String transactionHash = evLog.getTransactionHash();
-            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
             claimReward.setTxHash(transactionHash);
             claimReward.setUser(args.get(0).getValue().toString());
             claimReward.setRewardAmount(args.get(1).getValue().toString());

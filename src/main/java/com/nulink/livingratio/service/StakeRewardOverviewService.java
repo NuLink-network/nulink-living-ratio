@@ -90,7 +90,7 @@ public class StakeRewardOverviewService {
 
     //@Cacheable(cacheNames = "StakeRewardOverview", key = "#epoch")
     public StakeRewardOverview findEpoch(String epoch){
-        String stakeRewardOverviewFindEpoch = "StakeRewardOverview_lastEpoch_" + epoch;
+        String stakeRewardOverviewFindEpoch = "StakeRewardOverview:lastEpoch:" + epoch;
         try {
             Object redisValue = redisService.get(stakeRewardOverviewFindEpoch);
             if (null != redisValue) {
@@ -114,14 +114,13 @@ public class StakeRewardOverviewService {
 
     public StakeRewardOverview findCurrentEpoch(){
         String epoch = web3jUtils.getCurrentEpoch();
-        String stakeRewardOverviewCurrentEpoch = "StakeRewardOverview_currentEpoch_" + epoch;
+        String stakeRewardOverviewCurrentEpoch = "StakeRewardOverview:currentEpoch:" + epoch;
         StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
         try {
             Object redisValue = redisService.get(stakeRewardOverviewCurrentEpoch);
             if (null != redisValue) {
                 String v = redisValue.toString();
-                stakeRewardOverview = JSONObject.parseObject(v, StakeRewardOverview.class);
-                return stakeRewardOverview;
+                return JSONObject.parseObject(v, StakeRewardOverview.class);
             }
         }catch (Exception e){
             log.error("StakeRewardOverview findCurrentEpoch redis read error：{}", e.getMessage());
@@ -139,7 +138,7 @@ public class StakeRewardOverviewService {
         }
         try {
             String pvoStr = JSON.toJSONString(stakeRewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 60, TimeUnit.SECONDS);
+            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 180, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.error("StakeRewardOverview findCurrentEpoch redis write error：{}", e.getMessage());
         }

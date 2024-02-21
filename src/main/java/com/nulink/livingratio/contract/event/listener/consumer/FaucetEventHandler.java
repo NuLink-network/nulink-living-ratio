@@ -40,7 +40,7 @@ public class FaucetEventHandler {
         if (!CollectionUtils.isEmpty(args)) {
             FaucetNLK faucetNLK = new FaucetNLK();
             String transactionHash = evLog.getTransactionHash();
-            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+            Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
             faucetNLK.setTxHash(transactionHash);
             faucetNLK.setUser(args.get(0).getValue().toString());
             faucetNLK.setCountryCode(args.get(1).getValue().toString());

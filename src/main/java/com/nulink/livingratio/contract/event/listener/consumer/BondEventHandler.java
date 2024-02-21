@@ -35,7 +35,7 @@ public class BondEventHandler {
         String data = EthLogsParser.hexToBigInteger(evLog.getData()).toString();
         Bond bond = new Bond();
         String transactionHash = evLog.getTransactionHash();
-        Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStamp(transactionHash);
+        Timestamp eventHappenedTimeStamp = web3jUtils.getEventHappenedTimeStampByBlockHash(evLog.getBlockHash());
         bond.setTxHash(transactionHash);
         bond.setStakingProvider(EthLogsParser.hexToAddress(topics.get(1)));
         bond.setOperator(EthLogsParser.hexToAddress(topics.get(2)));

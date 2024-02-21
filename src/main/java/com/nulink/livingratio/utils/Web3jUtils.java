@@ -452,8 +452,37 @@ public class Web3jUtils {
 
     }
 
+    public Timestamp getEventHappenedTimeStampByBlockHash(String blockHash) {
+
+        String blockHashKey = "blockTimeStamp:blockHash:" + blockHash;
+        try {
+            Object redisValue = redisService.get(blockHashKey);
+            if (null != redisValue) {
+                return  new Timestamp (Long.parseLong(redisValue.toString()));
+            }
+        }catch (Exception e){
+            log.error("getEventHappenedTimeStampByBlockHash redis read error：{}", e.getMessage());
+        }
+
+        while (true) {
+            try {
+                long timestamp = web3j.ethGetBlockByHash(blockHash, true).send().getResult().getTimestamp().longValueExact() * 1000;
+                redisService.set(blockHashKey, String.valueOf(timestamp), 180, TimeUnit.SECONDS);
+                return new Timestamp(timestamp);
+            } catch (IOException e) {
+                logger.error("getEventHappenedTimeStampByBlockHash IOException: {} retrying ...", e, e);
+            }
+            try {
+                TimeUnit.MILLISECONDS.sleep(200);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
     public String getCurrentEpoch() {
-        String currentEpochCacheKey = "staking_service_currentEpoch";
+        String currentEpochCacheKey = "stakingService:currentEpoch";
         String currentEpoch = "";
         try {
             Object redisValue = redisService.get(currentEpochCacheKey);
@@ -487,7 +516,7 @@ public class Web3jUtils {
     }
 
     public String getEpochReward(String epoch) {
-        String epochRewardKey = "epoch_reward_key_" + epoch;
+        String epochRewardKey = "epochReward:epoch:" + epoch;
         try {
             Object redisValue = redisService.get(epochRewardKey);
             if (null != redisValue) {

@@ -49,7 +49,7 @@ public class StakeRewardOverviewService {
     public void generateStakeRewardOverview(){
         String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
         if (null == stakeRewardOverviewRepository.findByEpoch(previousEpoch)){
-            List<StakeReward> previousEpochStakeReward = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
+            List<StakeReward> previousEpochStakeReward = stakeRewardRepository.findAllByEpoch(previousEpoch);
             if (!previousEpochStakeReward.isEmpty()){
                 stakeRewardOverviewRepository.save(getStakeRewardOverview(previousEpochStakeReward, previousEpoch));
             }else {
@@ -125,7 +125,7 @@ public class StakeRewardOverviewService {
         }catch (Exception e){
             log.error("StakeRewardOverview findCurrentEpoch redis read error：{}", e.getMessage());
         }
-        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
         if (!stakeRewards.isEmpty()){
             stakeRewardOverview = getStakeRewardOverview(stakeRewards, epoch);
         } else {

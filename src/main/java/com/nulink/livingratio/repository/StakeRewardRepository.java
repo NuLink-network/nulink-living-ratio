@@ -12,15 +12,11 @@ import java.util.List;
 @Repository
 public interface StakeRewardRepository extends PagingAndSortingRepository<StakeReward, Long>, JpaSpecificationExecutor {
 
-    List<StakeReward> findAllByEpochOrderByCreateTime(String epoch);
-
     StakeReward findByEpochAndStakingProvider(String epoch, String stakingProvider);
 
     List<StakeReward> findAllByEpoch(String epoch);
 
     List<StakeReward> findAllByStakingProviderAndEpochNot(String stakingProvider, String epoch);
-
-    StakeReward findFirstByStakingProviderAndIpAddressIsNotNullOrderByCreateTimeDesc(String stakingProvider);
 
     @Query(value = "SELECT count(1) FROM stake_reward sr where staking_provider = :stakingProvider and SUBSTR(sr.living_ratio, 1, 1) = '1' and epoch != :currentEpoch", nativeQuery = true)
     int countStakingProviderAllOnlineEpoch(@Param("stakingProvider") String stakingProvider, @Param("currentEpoch") String currentEpoch);

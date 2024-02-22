@@ -15,7 +15,7 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:mysql://rm-gs508vjjdk9khv8wsdo.mysql.singapore.rds.aliyuncs.com/horus_testnet?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://rm-gs508vjjdk9khv8ws.mysql.singapore.rds.aliyuncs.com/horus_testnet?useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: horus_testnet
     password: C#If4d+if32l2-F2lf52
     hikari:
@@ -60,7 +60,7 @@ contracts:
     -
       name: 'NLKFaucet'
       address: '0x3cC6FC1035465d5b238F04097dF272Fe9b60EB94'
-      enabled: true
+      enabled: false
 
 web3j:
   #client-address: https://data-seed-prebsc-2-s2.bnbchain.org:8545

@@ -27,12 +27,6 @@ public class StakeRewardController {
         this.web3jUtils = web3jUtils;
     }
 
-    @ApiOperation(value = "ping")
-    @RequestMapping(value = "/ping", method = RequestMethod.GET)
-    public BaseResponse ping() {
-        return BaseResponse.success("pong");
-    }
-
     @ApiOperation("node info")
     @GetMapping("/nodeInfo")
     public BaseResponse<StakeReward> nodeInfo(@RequestParam(value = "stakeProvider") String stakeProvider){

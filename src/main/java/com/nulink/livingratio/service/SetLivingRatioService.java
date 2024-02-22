@@ -49,6 +49,10 @@ public class SetLivingRatioService {
         return setLivingRatioRepository.findAllBySetLivingRatioOrderByCreateTimeDesc(false);
     }
 
+    public SetLivingRatio findByEpoch(String epoch){
+        return setLivingRatioRepository.findByEpoch(epoch);
+    }
+
     @Async
     @Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional

@@ -200,7 +200,7 @@ public class StakeRewardService {
                 return;
             }
             log.info("living ratio task start ...........................");
-            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
             List<Bond> latestBonds = bondRepository.findLatest();
             List<Stake> latestStakes = stakeRepository.findLatest();
 
@@ -296,7 +296,7 @@ public class StakeRewardService {
 
         try{
             String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();
-            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochOrderByCreateTime(previousEpoch);
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(previousEpoch);
             if (stakeRewards.isEmpty()){
                 StakeRewardService.lockCountPreviousEpochStakeRewardTaskFlag = false;
                 platformTransactionManager.commit(status);
@@ -590,7 +590,7 @@ public class StakeRewardService {
             if (DESC_SORT.equalsIgnoreCase(sorted)) {
                 comparator = comparator.reversed();
             }
-            Collections.sort(stakeRewards, comparator);
+            stakeRewards.sort(comparator);
         }
 
         int endIndex = pageNum * pageSize;
@@ -601,7 +601,7 @@ public class StakeRewardService {
     }
 
     public List<StakeReward> list(String epoch){
-        return stakeRewardRepository.findAllByEpochOrderByCreateTime(epoch);
+        return stakeRewardRepository.findAllByEpoch(epoch);
     }
 
     public String userTotalStakingReward(String address){

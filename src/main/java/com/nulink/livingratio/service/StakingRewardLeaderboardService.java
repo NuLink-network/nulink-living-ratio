@@ -7,11 +7,13 @@ import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.repository.StakingRewardLeaderboardRepository;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -91,21 +93,12 @@ public class StakingRewardLeaderboardService {
                 stakingRewardMap.put(stakeReward.getStakingProvider(), stakeReward);
             }
 
-            List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll();
+            List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll(false);
             Set<String> set = blacklists.stream().map(leaderboardBlacklist ->
                 leaderboardBlacklist.getStakingProvider().toLowerCase()
             ).collect(Collectors.toSet());
 
             List<StakingRewardLeaderboard> leaderboardList = stakingRewardLeaderboardRepository.findAll();
-
-            for (StakingRewardLeaderboard stakingRewardLeaderboard : leaderboardList) {
-                if (set.contains(stakingRewardLeaderboard.getStakingProvider())){
-                    stakingRewardLeaderboardRepository.delete(stakingRewardLeaderboard);
-                }
-            }
-
-            leaderboardList.removeIf(stakingRewardLeaderboard -> set.contains(stakingRewardLeaderboard.getStakingProvider().toLowerCase()));
-            stakeRewards.removeIf(stakeReward -> set.contains(stakeReward.getStakingProvider().toLowerCase()));
 
             Map<String, String> leaderboardMap =  new HashMap<>();
 
@@ -129,7 +122,7 @@ public class StakingRewardLeaderboardService {
                     StakingRewardLeaderboard stakingRewardLeaderboard = new StakingRewardLeaderboard();
                     stakingRewardLeaderboard.setStakingProvider(stakeReward.getStakingProvider());
                     stakingRewardLeaderboard.setEpoch(previousEpoch);
-                    stakingRewardLeaderboard.setAccumulatedStakingReward(stakeReward.getStakingReward());
+                    stakingRewardLeaderboard.setAccumulatedStakingReward(accumulatedStakingReward(stakeReward.getStakingProvider()));
                     leaderboardList.add(stakingRewardLeaderboard);
                 }
             }
@@ -137,9 +130,15 @@ public class StakingRewardLeaderboardService {
             Comparator<StakingRewardLeaderboard> comparator = Comparator.comparing(srl -> new BigDecimal(srl.getAccumulatedStakingReward()));
             comparator = comparator.reversed();
             leaderboardList.sort(comparator);
-            for (int j = 0; j < leaderboardList.size(); j++) {
-                StakingRewardLeaderboard stakingRewardLeaderboard = leaderboardList.get(j);
-                stakingRewardLeaderboard.setRanking(j + 1);
+            int ranking = 1;
+            for (StakingRewardLeaderboard stakingRewardLeaderboard : leaderboardList) {
+                if (set.contains(stakingRewardLeaderboard.getStakingProvider())) {
+                    stakingRewardLeaderboard.setRanking(-1);
+                } else {
+                    stakingRewardLeaderboard.setRanking(ranking);
+                    ranking++;
+                }
+
             }
             stakingRewardLeaderboardRepository.saveAll(leaderboardList);
             platformTransactionManager.commit(status);
@@ -152,14 +151,27 @@ public class StakingRewardLeaderboardService {
         }
     }
 
-    public StakingRewardLeaderboard findByStakingProvider(String stakingProvider){
-        return stakingRewardLeaderboardRepository.findByStakingProvider(stakingProvider);
+    private String accumulatedStakingReward(String stakingProvider){
+        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByStakingProvider(stakingProvider);
+        BigDecimal accumulatedStakingReward = BigDecimal.ZERO;
+        for (StakeReward stakeReward : stakeRewards) {
+            String stakingReward = stakeReward.getStakingReward();
+            if (StringUtils.isNotBlank(stakingReward)){
+                accumulatedStakingReward =  accumulatedStakingReward.add(new BigDecimal(stakingReward));
+            }
+        }
+        return accumulatedStakingReward.toString();
     }
 
-    public Page<StakingRewardLeaderboard> findByPage(int pageSize, int pageNum){
+    public StakingRewardLeaderboard findByStakingProvider(String stakingProvider){
+        return stakingRewardLeaderboardRepository.findByStakingProviderAndRankingNot(stakingProvider, -1);
+    }
+
+    public Page findByPage(int pageSize, int pageNum){
         Sort sort = Sort.by(Sort.Direction.ASC, "ranking");
         Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
-        return stakingRewardLeaderboardRepository.findAll(pageable);
+        Specification<StakingRewardLeaderboard> spec = (root, query, cb) -> cb.notEqual(root.get("ranking"), -1);
+        return stakingRewardLeaderboardRepository.findAll(spec, pageable);
     }
 
 }

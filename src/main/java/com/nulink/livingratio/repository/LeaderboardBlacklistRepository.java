@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface LeaderboardBlacklistRepository extends JpaRepository<LeaderboardBlacklist, Long>, JpaSpecificationExecutor {
 
@@ -13,4 +15,6 @@ public interface LeaderboardBlacklistRepository extends JpaRepository<Leaderboar
     void deleteByStakingProvider(String stakingProvider);
 
     LeaderboardBlacklist findByStakingProvider(String stakingProvider);
+
+    List<LeaderboardBlacklist> findAllByDeleted(Boolean deleted);
 }

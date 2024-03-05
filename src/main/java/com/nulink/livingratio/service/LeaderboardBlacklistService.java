@@ -41,13 +41,15 @@ public class LeaderboardBlacklistService {
         return leaderboardBlacklistRepository.findAll(pageRequest);
     }
 
-    public List<LeaderboardBlacklist> findAll(){
-        return leaderboardBlacklistRepository.findAll();
+    public List<LeaderboardBlacklist> findAll(boolean deleted){
+        return leaderboardBlacklistRepository.findAllByDeleted(deleted);
     }
 
     @Transactional
     public void delete(String stakingProvider){
-        leaderboardBlacklistRepository.deleteByStakingProvider(stakingProvider);
+        LeaderboardBlacklist blacklist = leaderboardBlacklistRepository.findByStakingProvider(stakingProvider);
+        blacklist.setDeleted(true);
+        leaderboardBlacklistRepository.save(blacklist);
     }
 
     public LeaderboardBlacklist findByStakingProvider(String stakingProvider){

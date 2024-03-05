@@ -3,6 +3,7 @@ package com.nulink.livingratio.controller;
 import com.nulink.livingratio.entity.SetLivingRatio;
 import com.nulink.livingratio.service.SetLivingRatioService;
 import com.nulink.livingratio.utils.Web3jUtils;
+import com.nulink.livingratio.vo.BaseResponse;
 import io.swagger.annotations.Api;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,21 +27,21 @@ public class HealthController {
 
     @GetMapping
     public ResponseEntity health(){
-        return new ResponseEntity<>("Staking Service is Running", HttpStatus.OK);
+        return new ResponseEntity<>(BaseResponse.success("Staking Service is Running"), HttpStatus.OK);
     }
 
     @GetMapping("stakingReward")
     public ResponseEntity checkStakingReward(){
         String currentEpoch = web3jUtils.getCurrentEpoch();
         String startTime = web3jUtils.getEpochStartTime(currentEpoch);
-        if (System.currentTimeMillis() > (Long.parseLong(startTime) * 1000 + 15 * 60 * 1000)){
+        if (System.currentTimeMillis() < (Long.parseLong(startTime) * 1000 + 15 * 60 * 1000)){
             SetLivingRatio livingRatio = setLivingRatioService.findByEpoch(currentEpoch);
             if (livingRatio.isSetLivingRatio()){
-                return new ResponseEntity<>(livingRatio, HttpStatus.OK);
+                return new ResponseEntity<>(BaseResponse.success(livingRatio), HttpStatus.OK);
             } else {
-                return new ResponseEntity<>("Set living ratio task is failed", HttpStatus.INTERNAL_SERVER_ERROR);
+                return new ResponseEntity<>(BaseResponse.failed("Set living ratio task is failed", null), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
-        return new ResponseEntity<>("Set living ratio task is currently being executed ...", HttpStatus.OK);
+        return new ResponseEntity<>(BaseResponse.success("Set living ratio task is currently being executed ..."), HttpStatus.OK);
     }
 }

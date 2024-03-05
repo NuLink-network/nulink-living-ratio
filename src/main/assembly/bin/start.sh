@@ -1,19 +1,12 @@
 #!/bin/bash
 
-# 项目名称
 SERVER_NAME="${project.artifactId}"
 
-# jar名称
 JAR_NAME="${project.build.finalName}.jar"
 
-# 进入bin目录
 cd `dirname $0`
-# bin目录绝对路径
 BIN_DIR=`pwd`
-# 返回到上一级项目根目录路径
 cd ..
-# 打印项目根目录绝对路径
-# `pwd` 执行系统命令并获得结果
 DEPLOY_DIR=`pwd`
 
 CONF_DIR=$DEPLOY_DIR/config

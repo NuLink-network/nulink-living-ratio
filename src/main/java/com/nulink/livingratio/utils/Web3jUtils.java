@@ -269,11 +269,12 @@ public class Web3jUtils {
             if (null == credentials) {
                 throw new RuntimeException("sendTransaction can't find keystore credentials");
             }
-            Web3j web3j1 = Web3j.build(new HttpService("https://data-seed-prebsc-2-s2.bnbchain.org:8545"));
+            Web3j web3j1 = Web3j.build(new HttpService("https://data-seed-prebsc-1-s1.bnbchain.org:8545"));
             String fromAddress = credentials.getAddress();
             try {
                 EthGetTransactionCount ethGetTransactionCount = web3j1.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();
                 BigInteger nonce = ethGetTransactionCount.getTransactionCount();
+                log.info("sendTransaction nonce: {}", nonce);
 
                 Transaction transaction = Transaction.createFunctionCallTransaction(
                         fromAddress,
@@ -313,7 +314,7 @@ public class Web3jUtils {
     /*
      * Waiting for transaction receipt
      */
-    public TransactionReceipt waitForTransactionReceipt(String txHash) {
+    public TransactionReceipt waitForTransactionReceipt(String txHash) throws TransactionException {
         // Wait for transaction to be mined
         TransactionReceiptProcessor receiptProcessor = new PollingTransactionReceiptProcessor(web3j, TransactionManager.DEFAULT_POLLING_FREQUENCY, TransactionManager.DEFAULT_POLLING_ATTEMPTS_PER_TX_HASH);
         TransactionReceipt txReceipt = null;
@@ -323,7 +324,7 @@ public class Web3jUtils {
             try {
                 txReceipt = receiptProcessor.waitForTransactionReceipt(txHash);
                 break;
-            } catch (SocketTimeoutException e) {
+            } catch (/*SocketTimeoutException*/ IOException e) {
                 logger.error("waitForTransactionReceipt SocketException:", e);
                 try {
                     TimeUnit.MILLISECONDS.sleep(2000);
@@ -333,14 +334,10 @@ public class Web3jUtils {
                 if (m < retryTimes) {
                     logger.info("waitForTransactionReceipt SocketException retrying ....");
                 }
-            } catch (IOException e) {
-                // throw new RuntimeException(e);
-                logger.error("waitForTransactionReceipt IOException:" + e);
-                break;
             } catch (TransactionException e) {
                 // throw new RuntimeException(e);
                 logger.error("waitForTransactionReceipt TransactionException:" + e);
-                break;
+                throw e;
             }
         }
         return txReceipt;

@@ -6,14 +6,18 @@ import com.nulink.livingratio.repository.SetLivingRatioRepository;
 import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.protocol.exceptions.TransactionException;
 
 import javax.transaction.Transactional;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +58,7 @@ public class SetLivingRatioService {
     }
 
     @Async
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    //@Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void setUnLivingRatio(){
         synchronized (setUnLivingRatioTaskKey) {
@@ -94,13 +98,13 @@ public class SetLivingRatioService {
         }
 
         try {
-            SetLivingRatio setLivingRatio = setLivingRatioRepository.findFirstBySetLivingRatioOrderByCreateTime(false);
+            log.info("The set living ratio task is starting ...");
+            SetLivingRatio setLivingRatio = setLivingRatioRepository.findFirstBySetLivingRatioAndTransactionFailOrderByCreateTime(false, false);
             if (null != setLivingRatio) {
                 String epoch = setLivingRatio.getEpoch();
-                List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
-                stakeRewards.removeIf(stakeReward -> new BigDecimal(stakeReward.getLivingRatio()).compareTo(BigDecimal.ZERO) == 0);
+                List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochAndLivingRatioNot(epoch, "0.0000");
 
-                int batchSize = 500;
+                int batchSize = 200;
                 int totalElements = stakeRewards.size();
                 int batches = (int) Math.ceil((double) totalElements / batchSize);
                 boolean finish = false;
@@ -126,14 +130,28 @@ public class SetLivingRatioService {
                                         return;
                                     }
                                 } while (j < 20 && (null == txHash || txHash.isEmpty()));
-                                TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
-                                // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
-                                if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
-                                    log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
-                                    SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
-                                    return;
+                                try {
+                                    TransactionReceipt txReceipt = web3jUtils.waitForTransactionReceipt(txHash);
+                                    // If status in response equals 1 the transaction was successful. If it is equals 0 the transaction was reverted by EVM.
+                                    if (Integer.parseInt(txReceipt.getStatus().substring(2), 16) == 0) {
+                                        log.error("==========>set living ratio failed txHash {} revert reason: {}", txHash, txReceipt.getRevertReason());
+                                        setLivingRatio.setTransactionFail(true);
+                                        setLivingRatio.setTxHash(txHash);
+                                        setLivingRatio.setReason(txReceipt.getRevertReason());
+                                        setLivingRatioRepository.save(setLivingRatio);
+                                        SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
+                                        return;
+                                    }
+                                } catch (TransactionException exception){
+                                    if(StringUtils.contains(exception.toString(), "Transaction receipt was not generated after")){
+                                        setLivingRatio.setTransactionFail(true);
+                                        setLivingRatio.setTxHash(txHash);
+                                        setLivingRatio.setReason(exception.toString());
+                                        setLivingRatioRepository.save(setLivingRatio);
+                                        SetLivingRatioService.lockSetLivingRatioTaskFlag = false;
+                                        return;
+                                    }
                                 }
-
                             } catch (IOException | InterruptedException | ExecutionException e) {
                                 log.error("==========>set living ratio failed reason: {}", e.getMessage());
                                 SetLivingRatioService.lockSetLivingRatioTaskFlag = false;

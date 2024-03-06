@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface SetLivingRatioRepository extends PagingAndSortingRepository<SetLivingRatio, Long>, JpaSpecificationExecutor {
 
-    SetLivingRatio findFirstBySetLivingRatioOrderByCreateTime(boolean set);
+    SetLivingRatio findFirstBySetLivingRatioAndTransactionFailOrderByCreateTime(boolean set, boolean error);
 
     List<SetLivingRatio> findAllBySetLivingRatioOrderByCreateTimeDesc(boolean setLivingRatio);
 

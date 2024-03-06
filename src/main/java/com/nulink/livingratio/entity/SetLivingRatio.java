@@ -17,6 +17,12 @@ public class SetLivingRatio extends BaseEntity{
     @Column(name = "set_living_ratio")
     private boolean setLivingRatio;
 
+    @Column(name = "transaction_fail", columnDefinition = "bit(1) DEFAULT b'0'")
+    private boolean transactionFail;
+
+    @Column(name = "reason",  columnDefinition = " text")
+    private String reason;
+
     public String getTxHash() {
         return txHash;
     }
@@ -39,5 +45,21 @@ public class SetLivingRatio extends BaseEntity{
 
     public void setSetLivingRatio(boolean setLivingRatio) {
         this.setLivingRatio = setLivingRatio;
+    }
+
+    public boolean isTransactionFail() {
+        return transactionFail;
+    }
+
+    public void setTransactionFail(boolean transactionFail) {
+        this.transactionFail = transactionFail;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 }

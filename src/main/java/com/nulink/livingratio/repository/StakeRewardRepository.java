@@ -16,6 +16,8 @@ public interface StakeRewardRepository extends PagingAndSortingRepository<StakeR
 
     List<StakeReward> findAllByEpoch(String epoch);
 
+    List<StakeReward> findAllByEpochAndLivingRatioNot(String epoch, String stakingReward);
+
     List<StakeReward> findAllByStakingProvider(String StakingProvider);
 
     List<StakeReward> findAllByStakingProviderAndEpochNot(String stakingProvider, String epoch);

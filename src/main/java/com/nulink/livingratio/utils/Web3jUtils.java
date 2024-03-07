@@ -180,7 +180,7 @@ public class Web3jUtils {
      * @param address Wallet address
      * @return  balance
      */
-    private BigInteger getBalance(String address) {
+    public BigInteger getBalance(String address) {
         BigInteger balance = null;
         try {
             EthGetBalance ethGetBalance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).send();
@@ -259,6 +259,13 @@ public class Web3jUtils {
             logger.error("getTransactionNonce IOException log: {}", e);
         }
         return nonce;
+    }
+
+    public BigInteger getBalance(){
+        if (null == credentials) {
+            throw new RuntimeException("sendTransaction can't find keystore credentials");
+        }
+        return getBalance(credentials.getAddress());
     }
 
     public String sendTransaction(Function function, String contractAddress) throws IOException, ExecutionException, InterruptedException{

@@ -39,7 +39,7 @@ public class HealthController {
         String currentEpoch = web3jUtils.getCurrentEpoch();
         String previousEpoch = new BigDecimal(currentEpoch).subtract(new BigDecimal(1)).toString();
         String startTime = web3jUtils.getEpochStartTime(currentEpoch);
-        if (System.currentTimeMillis() > (Long.parseLong(startTime) * 1000 + 20 * 60 * 1000)){
+        if (System.currentTimeMillis() > (Long.parseLong(startTime) * 1000 + 15 * 60 * 1000)){
             SetLivingRatio livingRatio = setLivingRatioService.findByEpoch(previousEpoch);
             if (livingRatio.isSetLivingRatio()){
                 return new ResponseEntity<>(BaseResponse.success(livingRatio), HttpStatus.OK);

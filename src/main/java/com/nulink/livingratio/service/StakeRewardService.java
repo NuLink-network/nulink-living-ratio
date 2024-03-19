@@ -15,10 +15,12 @@ import com.nulink.livingratio.utils.Web3jUtils;
 import com.nulink.livingratio.vo.PorterRequestVO;
 import lombok.extern.log4j.Log4j2;
 import okhttp3.*;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.annotation.Resource;
+import javax.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -516,63 +519,136 @@ public class StakeRewardService {
     }
 
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum, String orderBy, String sorted){
-        String stakeRewardPageKey = "stakeRewardPage:epoch:" + epoch;
-        List<StakeReward> stakeRewards = new ArrayList<>();
+        StringBuilder stakeRewardPageKey = new StringBuilder("stakeRewardPage:epoch:" + epoch);
+        StringBuilder stakeRewardPageCountKey = new StringBuilder("stakeRewardPageCount:epoch:" + epoch);
+        if (ObjectUtils.isNotEmpty(pageSize)){
+            stakeRewardPageKey.append(":pageSize:").append(pageSize);
+            stakeRewardPageCountKey.append(":pageSize:").append(pageSize);
+        }
+        if (ObjectUtils.isNotEmpty(pageNum)){
+            stakeRewardPageKey.append(":pageNum:").append(pageNum);
+            stakeRewardPageCountKey.append(":pageNum:").append(pageNum);
+        }
+        if (StringUtils.isNotBlank(orderBy)){
+            stakeRewardPageKey.append(":orderBy:").append(orderBy);
+            stakeRewardPageCountKey.append(":orderBy:").append(orderBy);
+        }
+        if (StringUtils.isNotBlank(sorted)){
+            stakeRewardPageKey.append(":sorted:").append(sorted);
+            stakeRewardPageCountKey.append(":sorted:").append(sorted);
+        }
+        List<StakeReward> stakeRewards;
         try {
-            Object redisValue = redisService.get(stakeRewardPageKey);
-            if (null != redisValue) {
-                String v = redisValue.toString();
+            Object listValue = redisService.get(stakeRewardPageKey.toString());
+            Object countValue = redisService.get(stakeRewardPageCountKey.toString());
+            if (null != listValue && null != countValue) {
+                String v = listValue.toString();
                 stakeRewards = JSONObject.parseArray(v, StakeReward.class);
+                if (!stakeRewards.isEmpty())
+                return new PageImpl<>(stakeRewards, PageRequest.of(pageNum - 1, pageSize), Long.parseLong(countValue.toString()));
             }
         }catch (Exception e){
             log.error("StakeReward find page redis read error：{}", e.getMessage());
         }
-        if (stakeRewards.isEmpty()){
-            stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
-            if (!stakeRewards.isEmpty()){
-                try {
-                    String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
-                    redisService.set(stakeRewardPageKey, pvoStr, 300, TimeUnit.SECONDS);
-                }catch (Exception e){
-                    log.error("StakeReward find page redis write error：{}", e.getMessage());
-                }
+        Sort sort = null;
+        if ("livingRatio".equalsIgnoreCase(orderBy)) {
+            sort = Sort.by("livingRatio");
+        } else if ("stakingAmount".equalsIgnoreCase(orderBy)) {
+            sort = Sort.by("stakingAmount");
+        } else if ("stakingReward".equalsIgnoreCase(orderBy)) {
+            sort = Sort.by("stakingReward");
+        } else if ("validStakingAmount".equalsIgnoreCase(orderBy)) {
+            sort = Sort.by("validStakingAmount");
+        } else if ("validStakingQuota".equalsIgnoreCase(orderBy)) {
+            sort = Sort.by("validStakingQuota");
+        }
+        if (DESC_SORT.equalsIgnoreCase(sorted)) {
+            if (sort != null) {
+                sort = sort.descending();
+            }
+        } else {
+            if (sort != null) {
+                sort = sort.ascending();
             }
         }
-        return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
+        if(null == sort){
+            sort = Sort.by("createTime");
+        }
+        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, sort);
+
+        Specification<StakeReward> specification = (root, query, criteriaBuilder) -> {
+            if (StringUtils.isNotEmpty(epoch)) {
+                return criteriaBuilder.equal(root.get("epoch"), epoch);
+            }
+            return null;
+        };
+        Page<StakeReward> page = stakeRewardRepository.findAll(specification, pageable);
+        List<StakeReward> stakeRewardList = page.getContent();
+        if (!stakeRewardList.isEmpty()){
+            try {
+                String pvoStr = JSON.toJSONString(stakeRewardList, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(stakeRewardPageKey.toString(), pvoStr, 600, TimeUnit.SECONDS);
+                redisService.set(stakeRewardPageCountKey.toString(), String.valueOf(page.getTotalElements()), 600, TimeUnit.SECONDS);
+            }catch (Exception e){
+                log.error("StakeReward find page redis write error：{}", e.getMessage());
+            }
+        }
+        return page;
     }
 
     public Page<StakeReward> findCurrentEpochPage(int pageSize, int pageNum, String orderBy, String sorted){
         String epoch = web3jUtils.getCurrentEpoch();
-        String currentEpochStakeReward = "currentEpochStakeReward:epoch:" + epoch;
-        List<StakeReward> stakeRewards = new ArrayList<>();
+        StringBuilder currentEpochSB = new StringBuilder("currentEpochStakeReward:epoch:" + epoch);
+        StringBuilder currentEpochCountSB = new StringBuilder("currentEpochStakeRewardCount:epoch:" + epoch);
+        if (ObjectUtils.isNotEmpty(pageSize)){
+            currentEpochSB.append(":pageSize:").append(pageSize);
+            currentEpochCountSB.append(":pageSize:").append(pageSize);
+        }
+        if (ObjectUtils.isNotEmpty(pageNum)){
+            currentEpochSB.append(":pageNum:").append(pageNum);
+            currentEpochCountSB.append(":pageNum:").append(pageNum);
+        }
+        if (StringUtils.isNotBlank(orderBy)){
+            currentEpochSB.append(":orderBy:").append(orderBy);
+            currentEpochCountSB.append(":orderBy:").append(orderBy);
+        }
+        if (StringUtils.isNotBlank(sorted)){
+            currentEpochSB.append(":sorted:").append(sorted);
+            currentEpochCountSB.append(":sorted:").append(sorted);
+        }
+        List<StakeReward> stakeRewards;
         try {
-            Object redisValue = redisService.get(currentEpochStakeReward);
-            if (null != redisValue) {
-                String v = redisValue.toString();
+            Object listValue = redisService.get(currentEpochSB.toString());
+            Object countValue = redisService.get(currentEpochCountSB.toString());
+            if (null != listValue && null != countValue) {
+                String v = listValue.toString();
+                long size = Long.parseLong(countValue.toString());
                 stakeRewards = JSONObject.parseArray(v, StakeReward.class);
+                if (!stakeRewards.isEmpty()){
+                    return new PageImpl<>(stakeRewards, PageRequest.of(pageNum - 1, pageSize), size);
+                }
             }
         }catch (Exception e){
             log.error("stakeReward findCurrentEpochPage redis read error：{}", e.getMessage());
         }
 
-        if (stakeRewards.isEmpty()){
-            stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
-            countStakeReward(stakeRewards, epoch);
-            if (!stakeRewards.isEmpty()){
-                try {
-                    String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
-                    redisService.set(currentEpochStakeReward, pvoStr, 180, TimeUnit.SECONDS);
-                }catch (Exception e){
-                    log.error("stakeReward findCurrentEpochPage redis write error：{}", e.getMessage());
-                }
+        List<StakeReward> all = findAllByEpoch(epoch);
+        countStakeReward(all, epoch);
+        stakeRewards = pageHelper(pageSize, pageNum, orderBy, sorted, all);
+        if (!stakeRewards.isEmpty()){
+            try {
+                String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(currentEpochSB.toString(), pvoStr, 180, TimeUnit.SECONDS);
+                redisService.set(currentEpochCountSB.toString(), String.valueOf(all.size()), 180, TimeUnit.SECONDS);
+            }catch (Exception e){
+                log.error("stakeReward findCurrentEpochPage redis write error：{}", e.getMessage());
             }
         }
-
-        return pageHelper(pageSize, pageNum, orderBy, sorted, stakeRewards);
+        return new PageImpl<>(stakeRewards, PageRequest.of(pageNum - 1, pageSize), all.size());
     }
 
     @NotNull
-    private Page<StakeReward> pageHelper(int pageSize, int pageNum, String orderBy, String sorted, List<StakeReward> stakeRewards) {
+    private List<StakeReward> pageHelper(int pageSize, int pageNum, String orderBy, String sorted, List<StakeReward> stakeRewards) {
         Comparator<StakeReward> comparator = null;
         if ("livingRatio".equalsIgnoreCase(orderBy)) {
             comparator = Comparator.comparing(sr -> new BigDecimal(sr.getLivingRatio()));
@@ -596,8 +672,7 @@ public class StakeRewardService {
         int endIndex = pageNum * pageSize;
         int size = stakeRewards.size();
         endIndex = Math.min(endIndex, size);
-        List<StakeReward> subList = stakeRewards.subList((pageNum - 1) * pageSize, endIndex);
-        return new PageImpl<>(subList, PageRequest.of(pageNum - 1, pageSize), size);
+        return stakeRewards.subList((pageNum - 1) * pageSize, endIndex);
     }
 
     public List<StakeReward> list(String epoch){
@@ -629,5 +704,30 @@ public class StakeRewardService {
         int i = stakeRewardRepository.countStakingProviderAllOnlineEpoch(stakingProvider, currentEpoch);
         return i > 0;
     }
+
+    public List<StakeReward> findAllByEpoch(String epoch){
+        List<StakeReward> stakeRewards;
+        String stakeRewardEpochKey = "stakeRewardEpoch:" + epoch;
+        try {
+            Object listValue = redisService.get(stakeRewardEpochKey);
+            if (null != listValue) {
+                String v = listValue.toString();
+                return JSONObject.parseArray(v, StakeReward.class);
+            }
+        }catch (Exception e){
+            log.error("stakeReward findAllByEpoch redis read error：{}", e.getMessage());
+        }
+        stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
+        if (!stakeRewards.isEmpty()){
+            try {
+                String pvoStr = JSON.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(stakeRewardEpochKey, pvoStr, 60, TimeUnit.SECONDS);
+            }catch (Exception e){
+                log.error("stakeReward findAllByEpoch redis write error：{}", e.getMessage());
+            }
+        }
+        return stakeRewards;
+    }
+
 
 }

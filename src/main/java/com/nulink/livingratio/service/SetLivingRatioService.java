@@ -104,7 +104,7 @@ public class SetLivingRatioService {
                 String epoch = setLivingRatio.getEpoch();
                 List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochAndLivingRatioNot(epoch, "0.0000");
 
-                int batchSize = 200;
+                int batchSize = 150;
                 int totalElements = stakeRewards.size();
                 int batches = (int) Math.ceil((double) totalElements / batchSize);
                 boolean finish = false;

@@ -30,9 +30,9 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.annotation.Resource;
-import javax.persistence.criteria.Predicate;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.*;
@@ -78,6 +78,7 @@ public class StakeRewardService {
 
     private final ValidStakingAmountService validStakingAmountService;
 
+    private final ContractOffsetService contractOffsetService;
     @Resource
     private PlatformTransactionManager platformTransactionManager;
 
@@ -87,7 +88,8 @@ public class StakeRewardService {
                               BondRepository bondRepository,
                               Web3jUtils web3jUtils,
                               IncludeUrsulaService includeUrsulaService, RedisService redisService,
-                              ValidStakingAmountService validStakingAmountService) {
+                              ValidStakingAmountService validStakingAmountService,
+                              ContractOffsetService contractOffsetService) {
         this.stakeRewardRepository = stakeRewardRepository;
         this.stakeRepository = stakeRepository;
         this.stakeService = stakeService;
@@ -96,6 +98,7 @@ public class StakeRewardService {
         this.includeUrsulaService = includeUrsulaService;
         this.redisService = redisService;
         this.validStakingAmountService = validStakingAmountService;
+        this.contractOffsetService = contractOffsetService;
     }
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
@@ -127,6 +130,12 @@ public class StakeRewardService {
             if (!stakeRewardList.isEmpty()){
                 StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
                 log.info("The Current Epoch Valid StakeReward task has already been executed.");
+                platformTransactionManager.commit(status);
+                return;
+            }
+            if (!checkScanBlockNumber()){
+                StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
+                log.info("Waiting for scanning block");
                 platformTransactionManager.commit(status);
                 return;
             }
@@ -729,5 +738,19 @@ public class StakeRewardService {
         return stakeRewards;
     }
 
+    public boolean checkScanBlockNumber(){
+        String currentEpoch = web3jUtils.getCurrentEpoch();
+        String currentEpochBlockNumberKey = "currentEpoch" + currentEpoch + "blockNumber";
+        BigInteger blockNumber;
+        Object object = redisService.get(currentEpochBlockNumberKey);
+        if (ObjectUtils.isEmpty(object)){
+            blockNumber = web3jUtils.getBlockNumber(0);
+            redisService.set("currentEpoch" + currentEpoch + "blockNumber", blockNumber.toString(), 24, TimeUnit.HOURS);
+        } else {
+            blockNumber = new BigInteger(object.toString());
+        }
 
+        ContractOffset contractOffset = contractOffsetService.findByContractAddress("Delay30_BLOCK_CONTRACT_FLAG");
+        return contractOffset.getBlockOffset().compareTo(blockNumber) > 0;
+    }
 }

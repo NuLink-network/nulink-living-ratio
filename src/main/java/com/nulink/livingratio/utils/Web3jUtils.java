@@ -294,10 +294,10 @@ public class Web3jUtils {
 
                 BigInteger transactionGasLimit = getTransactionGasLimit(transaction);
 
-                BigInteger ethGasPrice = getGasPrice().multiply(new BigInteger("30")).divide(new BigInteger("10"));
+                BigInteger ethGasPrice = getGasPrice().multiply(new BigInteger("50")).divide(new BigInteger("10"));
 
                 //RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
-                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit, contractAddress, encodedFunction);
+                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit.multiply(new BigInteger("2")), contractAddress, encodedFunction);
 
                 byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);

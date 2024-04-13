@@ -59,10 +59,13 @@ contracts:
     -
       name: 'NLKFaucet'
       address: '0x60E7980DbA8d4cBaA0C4079801B770cf91311701'
-      enabled: true
+      enabled: false
 
 web3j:
-  client-address: https://rpc.ankr.com/bsc_testnet_chapel/1efbffd5898c6a7f6c352cb46bbee1b70535f3f68a6f00594e123a5b30a99daf
+  client-address:
+    official: https://data-seed-prebsc-1-s1.bnbchain.org:8545
+    ankr: https://rpc.ankr.com/bsc_testnet_chapel/1efbffd5898c6a7f6c352cb46bbee1b70535f3f68a6f00594e123a5b30a99daf
+    blockpi: https://bsc-testnet.blockpi.network/v1/rpc/f2599ba0b23571e5510fa6e3d34e6d99c64e04a4
   admin-client: true # to manage accounts, enable the admin client
   httpTimeoutSeconds: 35
 
@@ -73,5 +76,5 @@ knife4j:
 
 NULink:
   porter-service-url: http://8.219.11.39:9165
-  password: xxxxxx
+  password: x0i60c2N4he6
   chainId: 97

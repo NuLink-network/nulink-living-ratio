@@ -3,12 +3,12 @@ package com.nulink.livingratio.utils;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
-import com.alibaba.fastjson.JSONObject;
 import com.nulink.livingratio.config.ContractsConfig;
 import com.nulink.livingratio.config.ProfileConfig;
+import com.nulink.livingratio.config.RpcConfig;
 import com.nulink.livingratio.contract.event.listener.filter.Monitor;
-import com.nulink.livingratio.entity.StakeReward;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +70,15 @@ public class Web3jUtils {
 
     public static Logger logger = LoggerFactory.getLogger(Web3jUtils.class);
 
+    @Value("${web3j.client-address.ankr}")
+    private String ankrRpc;
+
+    @Value("${web3j.client-address.blockpi}")
+    private String blockpiRpc;
+
+    @Value("${web3j.client-address.official}")
+    private String officialRpc;
+
     /**
      * inject by web3j-spring-boot-starter
      */
@@ -81,6 +90,9 @@ public class Web3jUtils {
      */
     @Resource
     private Admin admin;
+
+    @Autowired
+    private RpcConfig rpcConfig;
 
     @Value("${NULink.password}")
     private String password;
@@ -107,6 +119,31 @@ public class Web3jUtils {
     public void init() throws IOException {
         String keystoreContent = getKeystoreContent();
         credentials = Credentials.create(getPrivateKey(keystoreContent, password));
+        String rpcUrl = rpcConfig.getRpcUrl();
+        if (StringUtils.isEmpty(rpcUrl)){
+            rpcUrl = ankrRpc;
+            rpcConfig.setRpcUrl(ankrRpc);
+        }
+        logger.info("Init Web3j instance ...");
+        logger.info("Construct a new Web3j instance by " + rpcUrl);
+        web3j = Web3j.build(new HttpService(rpcUrl));
+    }
+
+    public void switchRpcUrl() {
+        logger.info("switch Web3j RpcUrl ...");
+        String rpcUrl = rpcConfig.getRpcUrl();
+        if (StringUtils.isEmpty(rpcUrl)){
+            rpcUrl = ankrRpc;
+        } else if (ankrRpc.equalsIgnoreCase(rpcUrl)){
+            logger.info("The original RPC address is " + ankrRpc);
+            rpcUrl = blockpiRpc;
+        } else if (blockpiRpc.equalsIgnoreCase(rpcUrl)){
+            logger.info("The original RPC address is " + blockpiRpc);
+            rpcUrl = ankrRpc;
+        }
+        rpcConfig.setRpcUrl(rpcUrl);
+        logger.info("The RPC address change to " + rpcUrl);
+        web3j = Web3j.build(new HttpService(rpcUrl));
     }
 
     private String getKeystoreContent() throws IOException {
@@ -276,7 +313,7 @@ public class Web3jUtils {
             if (null == credentials) {
                 throw new RuntimeException("sendTransaction can't find keystore credentials");
             }
-            Web3j web3j1 = Web3j.build(new HttpService("https://data-seed-prebsc-1-s1.bnbchain.org:8545"));
+            Web3j web3j1 = Web3j.build(new HttpService(officialRpc));
             String fromAddress = credentials.getAddress();
             try {
                 EthGetTransactionCount ethGetTransactionCount = web3j1.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.PENDING).sendAsync().get();

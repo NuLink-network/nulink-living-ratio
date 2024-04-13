@@ -11,3 +11,7 @@ spring:
   application:
     name: nulink-living-ratio
 
+telegram:
+  bot:
+    token: 6701412119:AAGdUGaXyXVb5Eup188o7dwPVNl8gr52e70
+    chatId: -623331217

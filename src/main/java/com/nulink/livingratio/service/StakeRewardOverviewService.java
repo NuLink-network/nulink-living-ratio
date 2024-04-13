@@ -44,7 +44,7 @@ public class StakeRewardOverviewService {
     }
 
     @Async
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    //@Scheduled(cron = "0 0/1 * * * ? ")
     @Transactional
     public void generateStakeRewardOverview(){
         String previousEpoch = new BigDecimal(web3jUtils.getCurrentEpoch()).subtract(new BigDecimal(1)).toString();

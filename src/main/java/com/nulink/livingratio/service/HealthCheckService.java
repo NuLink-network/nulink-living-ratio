@@ -59,8 +59,8 @@ public class HealthCheckService {
             if (!ObjectUtils.isEmpty(livingRatio) && !livingRatio.isSetLivingRatio()){
                 LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                System.out.println("[Test Message]Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
-                //telegramBotClient.sendMessage("[Test Message]Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
+                log.info("Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
+                telegramBotClient.sendMessage("Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
             }
         }
     }
@@ -91,8 +91,8 @@ public class HealthCheckService {
         if (blockNumber.subtract(minBlockOffset).compareTo(new BigInteger("200")) > 0){
             LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            //telegramBotClient.sendMessage("[Test Message]The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
-            System.out.println("[Test Message]The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
+            log.info("The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
+            telegramBotClient.sendMessage("The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
         }
     }
 
@@ -108,7 +108,7 @@ public class HealthCheckService {
             LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             System.out.println("The manager's wallet balance is " + divide + "BNB, please recharge. Problem started at " + currentTime.format(formatter));
-            //telegramBotClient.sendMessage("The manager's wallet balance is " + divide + "BNB, please recharge. Problem started at " + currentTime.format(formatter));
+            telegramBotClient.sendMessage("The manager's wallet balance is " + divide + "BNB, please recharge. Problem started at " + currentTime.format(formatter));
         }
     }
 

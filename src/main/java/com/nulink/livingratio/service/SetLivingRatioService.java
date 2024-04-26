@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -103,7 +104,7 @@ public class SetLivingRatioService {
             if (null != setLivingRatio) {
                 String epoch = setLivingRatio.getEpoch();
                 List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochAndLivingRatioNot(epoch, "0.0000");
-
+                stakeRewards = stakeRewards.stream().filter(stakeReward -> BigDecimal.ZERO.compareTo(new BigDecimal(stakeReward.getLivingRatio())) != 0).collect(Collectors.toList());
                 int batchSize = 100;
                 int totalElements = stakeRewards.size();
                 int batches = (int) Math.ceil((double) totalElements / batchSize);

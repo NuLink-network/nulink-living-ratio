@@ -60,13 +60,15 @@ public class HealthCheckService {
                 LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                 log.info("Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
-                telegramBotClient.sendMessage("Staking Service Epoch " + previousEpoch + " Set living ratio task is failed, Problem started at " + currentTime.format(formatter));
+                telegramBotClient.sendMessage("Project: Staking-Service \n" +
+                        "Problem Title: Epoch " + previousEpoch + " Set living ratio task is failed \n" +
+                        "Problem started at " + currentTime.format(formatter));
             }
         }
     }
 
     @Async
-    @Scheduled(cron = "0 0/10 * * * ? ")
+    @Scheduled(cron = "0 0/5 * * * ? ")
     public void switchRpcUrl(){
         BigInteger blockNumber = getBlockNumber();
         List<ContractOffset> all = contractOffsetRepository.findAll();
@@ -80,7 +82,7 @@ public class HealthCheckService {
     }
 
     @Async
-    @Scheduled(cron = "0 0/5 * * * ? ")
+    @Scheduled(cron = "0 0/10 * * * ? ")
     public void checkScannerBlockNumber(){
         BigInteger blockNumber = getBlockNumber();
         List<ContractOffset> all = contractOffsetRepository.findAll();
@@ -88,11 +90,14 @@ public class HealthCheckService {
                 .map(ContractOffset::getBlockOffset)
                 .min(BigInteger::compareTo)
                 .orElse(BigInteger.ZERO);
+        log.info("blockNumber: " + blockNumber + ", minBlockOffset: " + minBlockOffset);
         if (blockNumber.subtract(minBlockOffset).compareTo(new BigInteger("200")) > 0){
             LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             log.info("The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
-            telegramBotClient.sendMessage("The block scanning program has a delay exceeding 200 blocks, Problem started at " + currentTime.format(formatter));
+            telegramBotClient.sendMessage("Project: Staking-Service \n" +
+                    "Problem Title: Block scanning program has a delay exceeding 200 blocks \n" +
+                    "Problem started at " + currentTime.format(formatter));
         }
     }
 
@@ -108,7 +113,10 @@ public class HealthCheckService {
             LocalDateTime currentTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             System.out.println("The manager's wallet balance is " + divide + "BNB, please recharge. Problem started at " + currentTime.format(formatter));
-            telegramBotClient.sendMessage("The manager's wallet balance is " + divide + "BNB, please recharge. Problem started at " + currentTime.format(formatter));
+            telegramBotClient.sendMessage("Project: Staking-Service \n" +
+                    "Problem Title: The manager's wallet balance is insufficient \n" +
+                    "Wallet balance: " + divide + "BNB \n" +
+                    "Problem started at " + currentTime.format(formatter));
         }
     }
 

@@ -1,18 +1,20 @@
 package com.nulink.livingratio.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.nulink.livingratio.entity.LeaderboardBlacklist;
 import com.nulink.livingratio.entity.StakeReward;
+import com.nulink.livingratio.entity.StakeRewardOverview;
 import com.nulink.livingratio.entity.StakingRewardLeaderboard;
 import com.nulink.livingratio.repository.StakeRewardRepository;
 import com.nulink.livingratio.repository.StakingRewardLeaderboardRepository;
+import com.nulink.livingratio.utils.RedisService;
 import com.nulink.livingratio.utils.Web3jUtils;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +26,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -35,16 +38,19 @@ public class StakingRewardLeaderboardService {
 
     private final LeaderboardBlacklistService leaderboardBlacklistService;
     private final Web3jUtils web3jUtils;
+    private final RedisService redisService;
     @Autowired
     private PlatformTransactionManager platformTransactionManager;
 
     public StakingRewardLeaderboardService(StakingRewardLeaderboardRepository stakingRewardLeaderboardRepository,
                                            StakeRewardRepository stakeRewardRepository,
-                                           LeaderboardBlacklistService leaderboardBlacklistService, Web3jUtils web3jUtils) {
+                                           LeaderboardBlacklistService leaderboardBlacklistService, Web3jUtils web3jUtils,
+                                           RedisService redisService) {
         this.stakingRewardLeaderboardRepository = stakingRewardLeaderboardRepository;
         this.stakeRewardRepository = stakeRewardRepository;
         this.leaderboardBlacklistService = leaderboardBlacklistService;
         this.web3jUtils = web3jUtils;
+        this.redisService = redisService;
     }
 
     private static final Object updateLeaderboardTaskKey = new Object();
@@ -164,14 +170,61 @@ public class StakingRewardLeaderboardService {
     }
 
     public StakingRewardLeaderboard findByStakingProvider(String stakingProvider){
-        return stakingRewardLeaderboardRepository.findByStakingProviderAndRankingNot(stakingProvider, -1);
+        String leaderboardCacheKey = "leaderboardCacheKey_" + stakingProvider;
+        try {
+            Object value = redisService.get(leaderboardCacheKey);
+            if (value != null) {
+                String v = value.toString();
+                return JSONObject.parseObject(v, StakingRewardLeaderboard.class);
+            }
+        } catch (Exception e) {
+            log.error("StakingRewardLeaderboard findByStakingProvider redis read error: {}", e.getMessage());
+        }
+        StakingRewardLeaderboard byStakingProviderAndRankingNot = stakingRewardLeaderboardRepository.findByStakingProviderAndRankingNot(stakingProvider, -1);
+        if (null != byStakingProviderAndRankingNot){
+            try {
+                String pvoStr = JSON.toJSONString(byStakingProviderAndRankingNot, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(leaderboardCacheKey, pvoStr, 1, TimeUnit.HOURS);
+            }catch (Exception e){
+                log.error("StakingRewardLeaderboard findByStakingProvider redis write error：{}", e.getMessage());
+            }
+        }
+        return byStakingProviderAndRankingNot;
     }
 
     public Page findByPage(int pageSize, int pageNum){
+        String leaderboardPageKey = "leaderboardPage" + pageSize + pageNum;
+        String leaderboardPageCountKey = "leaderboardPageCount" + pageSize + pageNum;
+
+        List<StakingRewardLeaderboard> stakingRewardLeaderboards = new ArrayList<>();
+        try {
+            Object listValue = redisService.get(leaderboardPageKey);
+            Object countValue = redisService.get(leaderboardPageCountKey);
+            if (listValue != null && countValue != null) {
+                String v = listValue.toString();
+                stakingRewardLeaderboards = JSONObject.parseArray(v, StakingRewardLeaderboard.class);
+                if (!stakingRewardLeaderboards.isEmpty()){
+                    return new PageImpl<>(stakingRewardLeaderboards, PageRequest.of(pageNum, pageSize), Long.parseLong(countValue.toString()));
+                }
+            }
+        } catch (Exception e) {
+            log.error("stakingRewardLeaderboards find page redis read error: {}", e.getMessage());
+        }
         Sort sort = Sort.by(Sort.Direction.ASC, "ranking");
         Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
         Specification<StakingRewardLeaderboard> spec = (root, query, cb) -> cb.notEqual(root.get("ranking"), -1);
-        return stakingRewardLeaderboardRepository.findAll(spec, pageable);
+        Page page = stakingRewardLeaderboardRepository.findAll(spec, pageable);
+        List<StakingRewardLeaderboard> content = page.getContent();
+        try {
+            if (!content.isEmpty()) {
+                String pvoStr = JSON.toJSONString(content, SerializerFeature.WriteNullStringAsEmpty);
+                redisService.set(leaderboardPageKey, pvoStr, 30, TimeUnit.MINUTES);
+                redisService.set(leaderboardPageCountKey, String.valueOf(page.getTotalElements()), 30, TimeUnit.MINUTES);
+            }
+        } catch (Exception e) {
+            log.error("stakingRewardLeaderboards find page redis write error: {}", e.getMessage());
+        }
+        return page;
     }
 
 }

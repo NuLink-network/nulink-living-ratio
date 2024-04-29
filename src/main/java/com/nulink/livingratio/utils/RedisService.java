@@ -44,6 +44,8 @@ public interface RedisService {
      */
     Object get(String key);
 
+    Boolean setNx(String key, String value);
+
     /**
      * delete
      */

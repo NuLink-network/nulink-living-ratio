@@ -37,7 +37,7 @@ public class StakeRewardOverviewController {
             StakeRewardOverview stakeRewardOverview = stakeRewardOverviewService.findCurrentEpoch();
             return BaseResponse.success(stakeRewardOverview);
         } else {
-            return BaseResponse.success(stakeRewardOverviewService.findEpoch(epoch));
+            return BaseResponse.success(stakeRewardOverviewService.findLastEpoch(epoch));
         }
     }
 

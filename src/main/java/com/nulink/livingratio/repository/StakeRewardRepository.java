@@ -1,6 +1,8 @@
 package com.nulink.livingratio.repository;
 
 import com.nulink.livingratio.entity.StakeReward;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.PagingAndSortingRepository;
@@ -15,6 +17,8 @@ public interface StakeRewardRepository extends PagingAndSortingRepository<StakeR
     StakeReward findByEpochAndStakingProvider(String epoch, String stakingProvider);
 
     List<StakeReward> findAllByEpoch(String epoch);
+
+    Page<StakeReward> findAllByEpoch(String epoch, Pageable pageable);
 
     List<StakeReward> findAllByEpochAndLivingRatioNot(String epoch, String stakingReward);
 

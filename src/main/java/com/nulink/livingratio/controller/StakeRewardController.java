@@ -47,10 +47,9 @@ public class StakeRewardController {
                                                                @RequestParam(value = "sorted", required = false) String sorted,
                                                                @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
                                                                @RequestParam(value = "pageNum", defaultValue = "1") int pageNum){
-        String currentEpoch = web3jUtils.getCurrentEpoch();
-        if (currentEpoch.equals(epoch)){
+        /*if (currentEpoch.equals(epoch)){
             return BaseResponse.success(stakeRewardService.findCurrentEpochPage(pageSize, pageNum, orderBy, sorted));
-        }
+        }*/
         return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum, orderBy, sorted));
     }
 

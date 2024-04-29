@@ -66,7 +66,7 @@ public class StakeRewardOverviewService {
         }
     }
 
-    private StakeRewardOverview getStakeRewardOverview(List<StakeReward> stakeRewards, String epoch){
+    public StakeRewardOverview getStakeRewardOverview(List<StakeReward> stakeRewards, String epoch){
         StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
         if (!stakeRewards.isEmpty()){
             for (StakeReward stakeReward : stakeRewards) {
@@ -88,7 +88,7 @@ public class StakeRewardOverviewService {
         return stakeRewardOverview;
     }
 
-    public StakeRewardOverview findEpoch(String epoch){
+    public StakeRewardOverview findLastEpoch(String epoch){
         String stakeRewardOverviewFindEpoch = "StakeRewardOverview:lastEpoch:" + epoch;
         try {
             Object redisValue = redisService.get(stakeRewardOverviewFindEpoch);
@@ -103,7 +103,7 @@ public class StakeRewardOverviewService {
         if (null != rewardOverview){
             try {
                 String pvoStr = JSON.toJSONString(rewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 300, TimeUnit.SECONDS);
+                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 24, TimeUnit.HOURS);
             }catch (Exception e){
                 log.error("StakeRewardOverview findLastEpoch redis write error：{}", e.getMessage());
             }
@@ -124,20 +124,45 @@ public class StakeRewardOverviewService {
         }catch (Exception e){
             log.error("StakeRewardOverview findCurrentEpoch redis read error：{}", e.getMessage());
         }
-        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
-        if (!stakeRewards.isEmpty()){
-            stakeRewardOverview = getStakeRewardOverview(stakeRewards, epoch);
-        } else {
-            List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(epoch));
-            List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
-            String sum = sum(reward);
-            sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(epoch))).toString();
-            stakeRewardOverview.setAccumulatedReward(sum);
-            stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(epoch));
+        stakeRewardOverview = stakeRewardOverviewRepository.findByEpoch(epoch);
+        if (null == stakeRewardOverview){
+            List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpoch(epoch);
+            if (!stakeRewards.isEmpty()){
+                stakeRewardOverview = getStakeRewardOverview(stakeRewards, epoch);
+            } else {
+                List<StakeRewardOverview> epochBefore = stakeRewardOverviewRepository.findAllByEpochBefore(Integer.parseInt(epoch));
+                List<String> reward = epochBefore.stream().map(StakeRewardOverview::getCurrentEpochReward).filter(StringUtils::isNotEmpty).collect(Collectors.toList());
+                String sum = sum(reward);
+                sum = new BigDecimal(sum).add(new BigDecimal(web3jUtils.getEpochReward(epoch))).toString();
+                stakeRewardOverview.setAccumulatedReward(sum);
+                stakeRewardOverview.setCurrentEpochReward(web3jUtils.getEpochReward(epoch));
+            }
         }
         try {
             String pvoStr = JSON.toJSONString(stakeRewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 180, TimeUnit.SECONDS);
+            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 10, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            log.error("StakeRewardOverview findCurrentEpoch redis write error：{}", e.getMessage());
+        }
+        return stakeRewardOverview;
+    }
+
+    public StakeRewardOverview findByEpoch(String epoch){
+        String stakeRewardOverviewCurrentEpoch = "StakeRewardOverview:currentEpoch:" + epoch;
+        StakeRewardOverview stakeRewardOverview = new StakeRewardOverview();
+        try {
+            Object redisValue = redisService.get(stakeRewardOverviewCurrentEpoch);
+            if (null != redisValue) {
+                String v = redisValue.toString();
+                return JSONObject.parseObject(v, StakeRewardOverview.class);
+            }
+        }catch (Exception e){
+            log.error("StakeRewardOverview findCurrentEpoch redis read error：{}", e.getMessage());
+        }
+        stakeRewardOverview = stakeRewardOverviewRepository.findByEpoch(epoch);
+        try {
+            String pvoStr = JSON.toJSONString(stakeRewardOverview, SerializerFeature.WriteNullStringAsEmpty);
+            redisService.set(stakeRewardOverviewCurrentEpoch, pvoStr, 10, TimeUnit.MINUTES);
         } catch (Exception e) {
             log.error("StakeRewardOverview findCurrentEpoch redis write error：{}", e.getMessage());
         }
@@ -166,5 +191,19 @@ public class StakeRewardOverviewService {
             result.put("totalStakingAmount", sum(totalStakingAmounts));
         }
         return result;
+    }
+
+    public void saveByEpoch(StakeRewardOverview stakeRewardOverview){
+        StakeRewardOverview overview = stakeRewardOverviewRepository.findByEpoch(stakeRewardOverview.getEpoch());
+        if (null != overview){
+            overview.setAccumulatedReward(stakeRewardOverview.getAccumulatedReward());
+            overview.setCurrentEpochReward(stakeRewardOverview.getCurrentEpochReward());
+            overview.setTotalStakingAmount(stakeRewardOverview.getTotalStakingAmount());
+            overview.setValidStakingAmount(stakeRewardOverview.getValidStakingAmount());
+            overview.setTotalStakingNodes(stakeRewardOverview.getTotalStakingNodes());
+            stakeRewardOverviewRepository.save(overview);
+        } else {
+            stakeRewardOverviewRepository.save(stakeRewardOverview);
+        }
     }
 }

@@ -39,6 +39,11 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public Boolean setNx(String key, String value) {
+        return redisTemplate.opsForValue().setIfAbsent(key, value);
+    }
+
+    @Override
     public Boolean del(String key) {
         return redisTemplate.delete(key);
     }

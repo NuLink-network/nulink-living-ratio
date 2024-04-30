@@ -53,6 +53,16 @@ public class StakeRewardController {
         return BaseResponse.success(stakeRewardService.findPage(epoch, pageSize, pageNum, orderBy, sorted));
     }
 
+    /*@ApiOperation(value = "deleteCache")
+    @GetMapping("deleteCache")
+    public BaseResponse delete(){
+        *//*if (currentEpoch.equals(epoch)){
+            return BaseResponse.success(stakeRewardService.findCurrentEpochPage(pageSize, pageNum, orderBy, sorted));
+        }*//*
+        stakeRewardService.deleteAllKeys();
+        return BaseResponse.success(1);
+    }*/
+
     @ApiOperation(value = "Stake Reward list")
     @GetMapping("list/{epoch}")
     public BaseResponse<List<StakeReward>> list(@PathVariable String epoch){

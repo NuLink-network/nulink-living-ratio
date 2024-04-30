@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -89,6 +90,8 @@ public class StakeRewardService {
     @Autowired
     private StakeRewardOverviewService stakingRewardOverviewService;
 
+    private RedisTemplate<String, String> redisTemplate;
+
     public StakeRewardService(StakeRewardRepository stakeRewardRepository,
                               StakeRepository stakeRepository,
                               StakeService stakeService,
@@ -96,7 +99,7 @@ public class StakeRewardService {
                               Web3jUtils web3jUtils,
                               IncludeUrsulaService includeUrsulaService, RedisService redisService,
                               ValidStakingAmountService validStakingAmountService,
-                              ContractOffsetService contractOffsetService) {
+                              ContractOffsetService contractOffsetService, RedisTemplate<String, String> redisTemplate) {
         this.stakeRewardRepository = stakeRewardRepository;
         this.stakeRepository = stakeRepository;
         this.stakeService = stakeService;
@@ -106,6 +109,7 @@ public class StakeRewardService {
         this.redisService = redisService;
         this.validStakingAmountService = validStakingAmountService;
         this.contractOffsetService = contractOffsetService;
+        this.redisTemplate = redisTemplate;
     }
 
     // When the epoch starts, generate the list of stake rewards for the previous epoch
@@ -183,8 +187,6 @@ public class StakeRewardService {
             });
             stakeRewards.removeIf(stakeReward -> stakeReward.getStakingAmount().equals("0"));
             stakeRewardRepository.saveAll(stakeRewards);
-            StakeRewardOverview stakeRewardOverview = stakingRewardOverviewService.getStakeRewardOverview(stakeRewards, currentEpoch);
-            stakingRewardOverviewService.saveByEpoch(stakeRewardOverview);
             platformTransactionManager.commit(status);
             StakeRewardService.generateCurrentEpochValidStakeRewardTaskFlag = false;
             log.info("The generate Current Epoch Valid StakeReward task is finish");
@@ -283,6 +285,8 @@ public class StakeRewardService {
             }
             stakeRewardRepository.saveAll(stakeRewards);
             includeUrsulaService.setIncludeUrsula(connectable);
+            StakeRewardOverview stakeRewardOverview = stakingRewardOverviewService.getStakeRewardOverview(stakeRewards, epoch);
+            stakingRewardOverviewService.saveByEpoch(stakeRewardOverview);
             platformTransactionManager.commit(status);
             log.info("living ratio task finish ...........................");
             StakeRewardService.livingRatioTaskFlag = false;
@@ -665,6 +669,14 @@ public class StakeRewardService {
         return new PageImpl<>(stakeRewards, PageRequest.of(pageNum - 1, pageSize), all.size());
     }*/
 
+    /*public void deleteAllKeys() {
+        Set<String> keys = redisTemplate.keys("*");
+
+        for (String key : keys) {
+            redisTemplate.delete(key);
+        }
+    }*/
+
     public Page<StakeReward> findPage(String epoch, int pageSize, int pageNum, String orderBy, String sorted) {
         String currentEpoch = web3jUtils.getCurrentEpoch();
         if (epoch.equals(currentEpoch) && ("stakingReward".equalsIgnoreCase(orderBy) || "validStakingAmount".equalsIgnoreCase(orderBy) || "validStakingQuota".equalsIgnoreCase(orderBy))){
@@ -689,7 +701,7 @@ public class StakeRewardService {
             log.error("StakeReward find page redis read error: {}", e.getMessage());
         }
         String stakeRewardQueryKey = buildKey("stakeRewardQueryKey", epoch, pageSize, pageNum, orderBy, sorted);
-        if (!redisService.setNx(stakeRewardQueryKey, stakeRewardQueryKey + "_Lock" )) {
+        if (!redisService.setNx(stakeRewardQueryKey, stakeRewardQueryKey + "_Lock", 20, TimeUnit.SECONDS )) {
             throw new RuntimeException("The system is busy, please try again later");
         }
         Sort sort = resolveSort(orderBy, sorted);
@@ -825,7 +837,7 @@ public class StakeRewardService {
 
     private Map<String,String> loadFromDatabaseAndCacheResults(String cacheKey, String countCacheKey, String epoch, int pageSize, int pageNum, String orderBy, String sortDirection, List<StakeReward> stakeRewards) {
         String stakeRewardQueryKey = buildCacheKey("stakeRewardCurrentEpochQuery", epoch, pageSize, pageNum, orderBy, sortDirection);
-        Boolean b = redisService.setNx(stakeRewardQueryKey, stakeRewardQueryKey + "_Lock");
+        Boolean b = redisService.setNx(stakeRewardQueryKey, stakeRewardQueryKey + "_Lock", 20, TimeUnit.SECONDS);
         if (!b){
             throw new RuntimeException("The system is busy, please try again later");
         }

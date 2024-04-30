@@ -46,6 +46,8 @@ public interface RedisService {
 
     Boolean setNx(String key, String value);
 
+    Boolean setNx(String key, String value, long time, TimeUnit unit);
+
     /**
      * delete
      */

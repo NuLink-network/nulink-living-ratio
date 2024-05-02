@@ -211,7 +211,7 @@ public class StakingRewardLeaderboardService {
             log.error("stakingRewardLeaderboards find page redis read error: {}", e.getMessage());
         }
         Sort sort = Sort.by(Sort.Direction.ASC, "ranking");
-        Pageable pageable = PageRequest.of(pageNum, pageSize, sort);
+        Pageable pageable = PageRequest.of(pageNum - 1, pageSize, sort);
         Specification<StakingRewardLeaderboard> spec = (root, query, cb) -> cb.notEqual(root.get("ranking"), -1);
         Page page = stakingRewardLeaderboardRepository.findAll(spec, pageable);
         List<StakingRewardLeaderboard> content = page.getContent();

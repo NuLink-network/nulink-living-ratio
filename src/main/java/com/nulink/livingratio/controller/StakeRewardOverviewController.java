@@ -33,12 +33,12 @@ public class StakeRewardOverviewController {
     @GetMapping
     public BaseResponse<StakeRewardOverview> findByEpoch(@RequestParam(value = "epoch") String epoch){
         String currentEpoch = web3jUtils.getCurrentEpoch();
-        if (currentEpoch.equals(epoch)){
+        /*if (currentEpoch.equals(epoch)){
             StakeRewardOverview stakeRewardOverview = stakeRewardOverviewService.findCurrentEpoch();
             return BaseResponse.success(stakeRewardOverview);
-        } else {
+        } else {*/
             return BaseResponse.success(stakeRewardOverviewService.findLastEpoch(epoch));
-        }
+        //}
     }
 
     @ApiOperation(value = "find total Stake Reward ")

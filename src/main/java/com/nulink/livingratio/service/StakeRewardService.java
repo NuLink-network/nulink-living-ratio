@@ -682,7 +682,7 @@ public class StakeRewardService {
         long startTime = System.currentTimeMillis();
         log.info("----------- findPage startTime:{}", startTime);
         String currentEpoch = web3jUtils.getCurrentEpoch();
-        if (epoch.equals(currentEpoch) && ("stakingReward".equalsIgnoreCase(orderBy) || "validStakingAmount".equalsIgnoreCase(orderBy) || "validStakingQuota".equalsIgnoreCase(orderBy))){
+        if (epoch.equals(currentEpoch) && ("stakingAmount".equalsIgnoreCase(orderBy) || "stakingReward".equalsIgnoreCase(orderBy) || "validStakingAmount".equalsIgnoreCase(orderBy) || "validStakingQuota".equalsIgnoreCase(orderBy))){
             return findCurrentEpochPageOrderHelper(pageSize, pageNum, orderBy, sorted);
         }
         // 构造Key的逻辑封装
@@ -788,8 +788,6 @@ public class StakeRewardService {
         Sort sort;
         if ("livingRatio".equalsIgnoreCase(orderBy)) {
             sort = Sort.by("livingRatio");
-        } else if ("stakingAmount".equalsIgnoreCase(orderBy)) {
-            sort = Sort.by("stakingAmount");
         } else if ("stakingReward".equalsIgnoreCase(orderBy)) {
             sort = Sort.by("stakingReward");
         } else if ("validStakingAmount".equalsIgnoreCase(orderBy)) {
@@ -888,8 +886,8 @@ public class StakeRewardService {
     private void cacheResults(String cacheKey, String countCacheKey, List<StakeReward> stakeRewards, long count) {
         try {
             String pvoStr = JSONObject.toJSONString(stakeRewards, SerializerFeature.WriteNullStringAsEmpty);
-            redisService.set(cacheKey, pvoStr, 10, TimeUnit.MINUTES);
-            redisService.set(countCacheKey, String.valueOf(count), 10, TimeUnit.MINUTES);
+            redisService.set(cacheKey, pvoStr, 30, TimeUnit.MINUTES);
+            redisService.set(countCacheKey, String.valueOf(count), 30, TimeUnit.MINUTES);
         } catch (Exception e) {
             log.error("Error writing to cache", e);
         }

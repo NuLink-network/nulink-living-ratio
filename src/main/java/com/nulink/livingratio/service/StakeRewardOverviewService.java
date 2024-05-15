@@ -103,7 +103,7 @@ public class StakeRewardOverviewService {
         if (null != rewardOverview){
             try {
                 String pvoStr = JSON.toJSONString(rewardOverview, SerializerFeature.WriteNullStringAsEmpty);
-                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 29, TimeUnit.MINUTES);
+                redisService.set(stakeRewardOverviewFindEpoch, pvoStr, 15, TimeUnit.MINUTES);
             }catch (Exception e){
                 log.error("StakeRewardOverview findLastEpoch redis write error：{}", e.getMessage());
             }

@@ -121,8 +121,8 @@ public class Web3jUtils {
         credentials = Credentials.create(getPrivateKey(keystoreContent, password));
         String rpcUrl = rpcConfig.getRpcUrl();
         if (StringUtils.isEmpty(rpcUrl)){
-            rpcUrl = ankrRpc;
-            rpcConfig.setRpcUrl(ankrRpc);
+            rpcUrl = blockpiRpc;
+            rpcConfig.setRpcUrl(blockpiRpc);
         }
         logger.info("Init Web3j instance ...");
         logger.info("Construct a new Web3j instance by " + rpcUrl);
@@ -133,7 +133,7 @@ public class Web3jUtils {
         logger.info("switch Web3j RpcUrl ...");
         String rpcUrl = rpcConfig.getRpcUrl();
         if (StringUtils.isEmpty(rpcUrl)){
-            rpcUrl = ankrRpc;
+            rpcUrl = blockpiRpc;
         } else if (ankrRpc.equalsIgnoreCase(rpcUrl)){
             logger.info("The original RPC address is " + ankrRpc);
             rpcUrl = blockpiRpc;
@@ -331,10 +331,10 @@ public class Web3jUtils {
 
                 BigInteger transactionGasLimit = getTransactionGasLimit(transaction);
 
-                BigInteger ethGasPrice = getGasPrice().multiply(new BigInteger("10")).divide(new BigInteger("10"));
+                BigInteger ethGasPrice = getGasPrice().multiply(new BigInteger("40")).divide(new BigInteger("10"));
 
-                //RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
-                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit.multiply(new BigInteger("2")), contractAddress, encodedFunction);
+                RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, DefaultGasProvider.GAS_LIMIT, contractAddress, encodedFunction);
+                //RawTransaction rawTransaction = RawTransaction.createTransaction( nonce, ethGasPrice, transactionGasLimit.multiply(new BigInteger("2")), contractAddress, encodedFunction);
 
                 byte[] signedMessage = TransactionEncoder.signMessage(rawTransaction, chainId, credentials);
                 String hexValue = Numeric.toHexString(signedMessage);
@@ -360,7 +360,8 @@ public class Web3jUtils {
      */
     public TransactionReceipt waitForTransactionReceipt(String txHash) throws TransactionException {
         // Wait for transaction to be mined
-        TransactionReceiptProcessor receiptProcessor = new PollingTransactionReceiptProcessor(web3j, TransactionManager.DEFAULT_POLLING_FREQUENCY, TransactionManager.DEFAULT_POLLING_ATTEMPTS_PER_TX_HASH);
+        Web3j web3jOfficial = Web3j.build(new HttpService(officialRpc));
+        TransactionReceiptProcessor receiptProcessor = new PollingTransactionReceiptProcessor(web3jOfficial, TransactionManager.DEFAULT_POLLING_FREQUENCY, TransactionManager.DEFAULT_POLLING_ATTEMPTS_PER_TX_HASH);
         TransactionReceipt txReceipt = null;
 
         int m = 0, retryTimes = 20;
@@ -692,5 +693,32 @@ public class Web3jUtils {
         Function function = new Function("setLiveRatio", inputParameters, outputParameters);
         ContractsConfig.ContractInfo eventReferralRewardCI = contractsConfig.getContractInfo("NuLinkStakingPool");
         return sendTransaction(function, eventReferralRewardCI.getAddress());
+    }
+
+
+    public String getUserEpochInfo(String epoch, String stakingProvider) throws IOException, ExecutionException, InterruptedException {
+
+        List<Type> inputParameters = new ArrayList<>();
+        inputParameters.add(new Address(stakingProvider));
+        inputParameters.add(new Uint16(Long.parseLong(epoch)));
+        List<TypeReference<?>> outputParameters = new ArrayList<>();
+        outputParameters.add(new TypeReference<Uint256>() {});
+        outputParameters.add(new TypeReference<Uint256>() {});
+        outputParameters.add(new TypeReference<Uint256>() {});
+        outputParameters.add(new TypeReference<Uint256>() {});
+        outputParameters.add(new TypeReference<Bool>() {});
+        Function function = new Function("getUserEpochInfo", inputParameters, outputParameters);
+        ContractsConfig.ContractInfo eventReferralRewardCI = contractsConfig.getContractInfo("NuLinkStakingPool");
+        try {
+            List<Type> returnList = callContractFunction(function, eventReferralRewardCI.getAddress());
+            return returnList.get(0).getValue().toString();
+        } catch (ExecutionException e) {
+            // throw new RuntimeException(e);
+            log.error("call getEpochStartTime ExecutionException: {}", e);
+        } catch (InterruptedException e) {
+            //throw new RuntimeException(e);
+            log.error("call getEpochStartTime InterruptedException: {}", e);
+        }
+        return null;
     }
 }

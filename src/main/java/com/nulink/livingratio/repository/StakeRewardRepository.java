@@ -29,4 +29,13 @@ public interface StakeRewardRepository extends PagingAndSortingRepository<StakeR
     @Query(value = "SELECT count(1) FROM stake_reward sr where staking_provider = :stakingProvider and SUBSTR(sr.living_ratio, 1, 1) = '1' and epoch != :currentEpoch", nativeQuery = true)
     int countStakingProviderAllOnlineEpoch(@Param("stakingProvider") String stakingProvider, @Param("currentEpoch") String currentEpoch);
 
+    @Query(value = "select distinct s.staking_provider from stake_reward s where (s.epoch + 0) < 141", nativeQuery = true)
+    List<String> findStakingProviderAddress();
+
+    @Query(value = "select distinct s.staking_provider from new_table s", nativeQuery = true)
+    List<String> findProviderAddress();
+
+    @Query(value = "select * from stake_reward s where s.staking_provider = :stakingProvider and (s.epoch + 0) < 141", nativeQuery = true)
+    List<StakeReward> findAllByEpochAndStakingProvider(String stakingProvider);
+
 }

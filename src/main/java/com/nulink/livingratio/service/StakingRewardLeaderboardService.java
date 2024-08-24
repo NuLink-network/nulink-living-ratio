@@ -57,7 +57,7 @@ public class StakingRewardLeaderboardService {
     private static boolean updateLeaderboardTaskFlag = false;
 
     @Async
-    @Scheduled(cron = "0 0/1 * * * ? ")
+    //@Scheduled(cron = "0 0/1 * * * ? ")
     public void updateLeaderboard(){
         synchronized (updateLeaderboardTaskKey) {
             if (StakingRewardLeaderboardService.updateLeaderboardTaskFlag) {
@@ -225,6 +225,84 @@ public class StakingRewardLeaderboardService {
             log.error("stakingRewardLeaderboards find page redis write error: {}", e.getMessage());
         }
         return page;
+    }
+
+    public void leaderboardHandler(){
+        List<String> stakingProviderAddress = stakeRewardRepository.findStakingProviderAddress();
+        log.info("The update leaderboard task task is start");
+        log.info("------------------------" + stakingProviderAddress.size());
+        List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll(false);
+        Set<String> set = blacklists.stream().map(leaderboardBlacklist ->
+                leaderboardBlacklist.getStakingProvider().toLowerCase()
+        ).collect(Collectors.toSet());
+
+        log.info("------------------------ set size:" + set.size());
+
+        List<StakingRewardLeaderboard> leaderboardList = new ArrayList<>();
+        int j = 0;
+        for (String providerAddress : stakingProviderAddress) {
+
+            if (set.contains(providerAddress.toLowerCase())){
+                log.info("------------------------" + providerAddress);
+                continue;
+            }
+            log.info("----------------------------" + j++);
+            String accumulatedStakingReward = countAccumulatedStakingReward(providerAddress);
+            StakingRewardLeaderboard stakingRewardLeaderboard = new StakingRewardLeaderboard();
+            stakingRewardLeaderboard.setStakingProvider(providerAddress);
+            stakingRewardLeaderboard.setAccumulatedStakingReward(accumulatedStakingReward);
+            stakingRewardLeaderboard.setEpoch("140");
+            leaderboardList.add(stakingRewardLeaderboard);
+        }
+        if (!leaderboardList.isEmpty()){
+            Comparator<StakingRewardLeaderboard> comparator = Comparator.comparing(srl -> new BigDecimal(srl.getAccumulatedStakingReward()));
+            comparator = comparator.reversed();
+            leaderboardList.sort(comparator);
+            for (int i = 0; i < leaderboardList.size(); i++) {
+                leaderboardList.get(i).setRanking(i + 1);
+            }
+            stakingRewardLeaderboardRepository.saveAll(leaderboardList);
+        }
+    }
+
+    public String countAccumulatedStakingReward(String stakingProvider){
+        List<StakeReward> stakeRewards = stakeRewardRepository.findAllByEpochAndStakingProvider(stakingProvider);
+        BigDecimal accumulatedStakingReward = BigDecimal.ZERO;
+        for (StakeReward stakeReward : stakeRewards) {
+            String stakingReward = stakeReward.getStakingReward();
+            if (StringUtils.isNotBlank(stakingReward)){
+                accumulatedStakingReward =  accumulatedStakingReward.add(new BigDecimal(stakingReward));
+            }
+        }
+        return accumulatedStakingReward.toString();
+    }
+
+
+    public void check(){
+        List<String> stakingProviderAddress = stakeRewardRepository.findProviderAddress();
+
+        List<LeaderboardBlacklist> blacklists = leaderboardBlacklistService.findAll(false);
+        Set<String> set = blacklists.stream().map(leaderboardBlacklist ->
+                leaderboardBlacklist.getStakingProvider().toLowerCase()
+        ).collect(Collectors.toSet());
+
+        for (String s : set) {
+            if (!stakingProviderAddress.contains(s.toLowerCase())){
+                log.info(s);
+            }
+        }
+
+        List<String> collect = stakingProviderAddress.stream().filter(s -> !set.contains(s.toLowerCase())).collect(Collectors.toList());
+
+        System.out.println(collect.size());
+
+        List<StakingRewardLeaderboard> all = stakingRewardLeaderboardRepository.findAll();
+        for (StakingRewardLeaderboard stakingRewardLeaderboard : all) {
+            String stakingProvider = stakingRewardLeaderboard.getStakingProvider();
+            if (!stakingProviderAddress.contains(stakingProvider.toLowerCase())){
+                log.info(stakingProvider);
+            }
+        }
     }
 
 }
